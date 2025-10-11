@@ -3,8 +3,15 @@ import { Button } from "@/components/ui/button";
 import { Upload, FileText } from "lucide-react";
 import { toast } from "sonner";
 
+export interface StoreData {
+  numeroLoja: string;
+  nomeLoja: string;
+  ipDesktop: string;
+  ipPDV: string;
+}
+
 interface FileUploadProps {
-  onFileLoaded: (data: Array<{ store: string; pdv: string; ip: string }>) => void;
+  onFileLoaded: (data: StoreData[]) => void;
 }
 
 export const FileUpload = ({ onFileLoaded }: FileUploadProps) => {
@@ -22,16 +29,23 @@ export const FileUpload = ({ onFileLoaded }: FileUploadProps) => {
       const lines = text.split("\n").filter((line) => line.trim());
       
       // Skip header if present
-      const dataLines = lines[0].toLowerCase().includes("loja") ? lines.slice(1) : lines;
+      const startIndex = lines[0].toLowerCase().includes("loja") ? 1 : 0;
       
-      const data = dataLines.map((line) => {
-        const [store, pdv, ip] = line.split(/[,;]/).map((s) => s.trim());
-        return { store, pdv, ip };
-      }).filter((item) => item.store && item.pdv && item.ip);
+      const data = lines.slice(startIndex).map((line) => {
+        const cols = line.split(/[,;]/).map((s) => s.trim());
+        
+        // Formato esperado: A=Loja, B=Nome, H=IP Desktop (índice 7), P=IP PDV (índice 15)
+        return {
+          numeroLoja: cols[0] || "",
+          nomeLoja: cols[1] || "",
+          ipDesktop: cols[7] || "",
+          ipPDV: cols[15] || ""
+        };
+      }).filter((item) => item.numeroLoja && (item.ipDesktop || item.ipPDV));
 
       if (data.length > 0) {
         onFileLoaded(data);
-        toast.success(`${data.length} registros carregados!`);
+        toast.success(`${data.length} lojas carregadas!`);
       } else {
         toast.error("Nenhum dado válido encontrado no arquivo");
       }
@@ -66,6 +80,9 @@ export const FileUpload = ({ onFileLoaded }: FileUploadProps) => {
           <span>{fileName}</span>
         </div>
       )}
+      <p className="text-xs text-muted-foreground">
+        Formato: A=Nº Loja, B=Nome, H=IP Desktop, P=IP PDV
+      </p>
     </div>
   );
 };

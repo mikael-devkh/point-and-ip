@@ -1,24 +1,20 @@
 import { useState, useEffect } from "react";
 import { SearchForm } from "@/components/SearchForm";
 import { ResultCard } from "@/components/ResultCard";
-import { HistoryList } from "@/components/HistoryList";
-import { FileUpload } from "@/components/FileUpload";
+import { HistoryList, HistoryItem } from "@/components/HistoryList";
+import { FileUpload, StoreData } from "@/components/FileUpload";
 import { Network } from "lucide-react";
 import { toast } from "sonner";
+import { calcularIP, IPConfig } from "@/utils/ipCalculator";
 
-interface StoreData {
-  store: string;
-  pdv: string;
-  ip: string;
-}
-
-interface HistoryItem extends StoreData {
-  timestamp: number;
+interface ResultData extends IPConfig {
+  tipo: string;
+  numeroPDV?: string;
 }
 
 const Index = () => {
   const [storeData, setStoreData] = useState<StoreData[]>([]);
-  const [result, setResult] = useState<StoreData | null>(null);
+  const [result, setResult] = useState<ResultData | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
 
   useEffect(() => {
@@ -28,22 +24,47 @@ const Index = () => {
     }
   }, []);
 
-  const handleSearch = (store: string, pdv: string) => {
-    const found = storeData.find(
-      (item) =>
-        item.store.toLowerCase().includes(store.toLowerCase()) &&
-        item.pdv === pdv
-    );
+  const handleSearch = (lojaDigitada: string, tipo: string, numeroPDV?: string) => {
+    try {
+      // Formatar loja removendo zeros à esquerda
+      const lojaFormatada = String(parseInt(lojaDigitada.replace(/^0+/, ""), 10));
 
-    if (found) {
-      setResult(found);
-      const newHistoryItem = { ...found, timestamp: Date.now() };
+      // Buscar loja na planilha
+      const lojaEncontrada = storeData.find((item) => {
+        const lojaNaPlanilha = String(item.numeroLoja).trim().replace(/^0+/, "");
+        return lojaNaPlanilha === lojaFormatada;
+      });
+
+      if (!lojaEncontrada) {
+        toast.error("Loja não encontrada.");
+        setResult(null);
+        return;
+      }
+
+      // Determinar IP base
+      const ipBase = tipo === "PDV" ? lojaEncontrada.ipPDV : lojaEncontrada.ipDesktop;
+
+      // Calcular configuração de IP
+      const config = calcularIP(ipBase, tipo, numeroPDV);
+      
+      const resultData: ResultData = {
+        ...config,
+        nomeLoja: lojaEncontrada.nomeLoja,
+        tipo,
+        numeroPDV
+      };
+
+      setResult(resultData);
+
+      // Salvar no histórico
+      const newHistoryItem: HistoryItem = { ...resultData, timestamp: Date.now() };
       const newHistory = [newHistoryItem, ...history.slice(0, 9)];
       setHistory(newHistory);
       localStorage.setItem("searchHistory", JSON.stringify(newHistory));
-      toast.success("IP encontrado!");
-    } else {
-      toast.error("Loja ou PDV não encontrados");
+      
+      toast.success("Configuração de IP gerada!");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Erro ao gerar IP");
       setResult(null);
     }
   };
@@ -66,10 +87,10 @@ const Index = () => {
             </div>
           </div>
           <h1 className="text-3xl font-bold text-foreground">
-            Consulta de IPs
+            Gerador de IP
           </h1>
           <p className="text-muted-foreground">
-            Busque o endereço IP de qualquer PDV
+            Configure IPs para PDVs, impressoras e desktops
           </p>
         </header>
 
@@ -85,9 +106,15 @@ const Index = () => {
           {result && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
               <ResultCard
-                store={result.store}
-                pdv={result.pdv}
+                nomeLoja={result.nomeLoja}
+                tipo={result.tipo}
+                numeroPDV={result.numeroPDV}
                 ip={result.ip}
+                mascara={result.mascara}
+                gateway={result.gateway}
+                broadcast={result.broadcast}
+                dns1={result.dns1}
+                dns2={result.dns2}
               />
             </div>
           )}

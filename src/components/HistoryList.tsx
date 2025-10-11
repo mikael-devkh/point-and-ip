@@ -1,10 +1,10 @@
 import { Card } from "@/components/ui/card";
 import { Clock } from "lucide-react";
+import { IPConfig } from "@/utils/ipCalculator";
 
-interface HistoryItem {
-  store: string;
-  pdv: string;
-  ip: string;
+export interface HistoryItem extends IPConfig {
+  tipo: string;
+  numeroPDV?: string;
   timestamp: number;
 }
 
@@ -38,7 +38,7 @@ export const HistoryList = ({ history, onSelect }: HistoryListProps) => {
           <div className="flex justify-between items-center">
             <div className="space-y-1">
               <p className="font-medium text-foreground">
-                {item.store} - PDV {item.pdv}
+                {item.nomeLoja} - {item.tipo} {item.numeroPDV ? `#${item.numeroPDV}` : ""}
               </p>
               <p className="text-sm text-primary">{item.ip}</p>
             </div>
