@@ -2,10 +2,10 @@ import { useState, useEffect } from "react";
 import { SearchForm } from "@/components/SearchForm";
 import { ResultCard } from "@/components/ResultCard";
 import { HistoryList, HistoryItem } from "@/components/HistoryList";
-import { FileUpload, StoreData } from "@/components/FileUpload";
 import { Network } from "lucide-react";
 import { toast } from "sonner";
 import { calcularIP, IPConfig } from "@/utils/ipCalculator";
+import { getStoreData } from "@/data/storesData";
 
 interface ResultData extends IPConfig {
   tipo: string;
@@ -13,7 +13,6 @@ interface ResultData extends IPConfig {
 }
 
 const Index = () => {
-  const [storeData, setStoreData] = useState<StoreData[]>([]);
   const [result, setResult] = useState<ResultData | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
 
@@ -29,11 +28,8 @@ const Index = () => {
       // Formatar loja removendo zeros à esquerda
       const lojaFormatada = String(parseInt(lojaDigitada.replace(/^0+/, ""), 10));
 
-      // Buscar loja na planilha
-      const lojaEncontrada = storeData.find((item) => {
-        const lojaNaPlanilha = String(item.numeroLoja).trim().replace(/^0+/, "");
-        return lojaNaPlanilha === lojaFormatada;
-      });
+      // Buscar loja na base de dados embutida
+      const lojaEncontrada = getStoreData(lojaFormatada);
 
       if (!lojaEncontrada) {
         toast.error("Loja não encontrada.");
@@ -69,10 +65,6 @@ const Index = () => {
     }
   };
 
-  const handleFileLoaded = (data: StoreData[]) => {
-    setStoreData(data);
-  };
-
   const handleHistorySelect = (item: HistoryItem) => {
     setResult(item);
   };
@@ -95,13 +87,9 @@ const Index = () => {
         </header>
 
         <div className="space-y-6">
-          <FileUpload onFileLoaded={handleFileLoaded} />
-          
-          {storeData.length > 0 && (
-            <div className="bg-card border border-border rounded-lg p-6 space-y-6">
-              <SearchForm onSearch={handleSearch} />
-            </div>
-          )}
+          <div className="bg-card border border-border rounded-lg p-6 space-y-6">
+            <SearchForm onSearch={handleSearch} />
+          </div>
 
           {result && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
