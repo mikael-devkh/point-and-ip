@@ -1,4 +1,4 @@
-import { jsPDF } from "jspdf";
+import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 
 export interface RatFormData {
   codigoLoja: string;
@@ -39,185 +39,238 @@ export interface RatFormData {
   prestadorTelefone: string;
 }
 
-export const generateRatPDF = (formData: RatFormData) => {
-  const doc = new jsPDF();
-  const pageWidth = doc.internal.pageSize.getWidth();
-  let yPosition = 15;
-
-  // Função auxiliar para adicionar texto com quebra de linha
-  const addText = (text: string, x: number, y: number, maxWidth?: number) => {
-    if (maxWidth) {
-      const lines = doc.splitTextToSize(text, maxWidth);
-      doc.text(lines, x, y);
-      return lines.length * 5;
-    } else {
-      doc.text(text, x, y);
-      return 5;
+export const generateRatPDF = async (formData: RatFormData) => {
+  // Carregar o PDF template
+  const templateUrl = "/rat-template.pdf";
+  const existingPdfBytes = await fetch(templateUrl).then((res) => res.arrayBuffer());
+  
+  const pdfDoc = await PDFDocument.load(existingPdfBytes);
+  const pages = pdfDoc.getPages();
+  const firstPage = pages[0];
+  const { width, height } = firstPage.getSize();
+  
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  const fontSize = 9;
+  const smallFont = 8;
+  
+  // IDENTIFICAÇÃO
+  firstPage.drawText(formData.codigoLoja, { x: 260, y: height - 115, size: fontSize, font });
+  firstPage.drawText(formData.pdv, { x: 390, y: height - 115, size: fontSize, font });
+  firstPage.drawText(formData.fsa, { x: 510, y: height - 115, size: fontSize, font });
+  firstPage.drawText(formData.endereco, { x: 90, y: height - 133, size: fontSize, font });
+  firstPage.drawText(formData.cidade, { x: 380, y: height - 133, size: fontSize, font });
+  firstPage.drawText(formData.uf, { x: 560, y: height - 133, size: fontSize, font });
+  firstPage.drawText(formData.nomeSolicitante, { x: 50, y: height - 151, size: fontSize, font });
+  
+  // EQUIPAMENTOS ENVOLVIDOS - Marcar checkboxes dos equipamentos
+  const equipmentPositions: { [key: string]: { x: number; y: number } } = {
+    "01-PDV-Teclado": { x: 49, y: height - 189 },
+    "02-PDV-Scanner": { x: 49, y: height - 199 },
+    "03-PDV-Impressora": { x: 49, y: height - 209 },
+    "04-PDV-Monitor": { x: 49, y: height - 219 },
+    "05-PDV-Gaveta": { x: 49, y: height - 229 },
+    "06-PDV-CPU": { x: 49, y: height - 239 },
+    "07-Desktop-Gerente": { x: 245, y: height - 189 },
+    "08-Desktop +Aqui": { x: 245, y: height - 199 },
+    "09-Desktop-Almox.": { x: 245, y: height - 209 },
+    "10-Desktop-Tesouraria": { x: 245, y: height - 219 },
+    "11-Impressora-Zebra/Printronix": { x: 245, y: height - 229 },
+    "12-Outros": { x: 245, y: height - 239 },
+  };
+  
+  formData.equipamentos.forEach((equip) => {
+    const pos = equipmentPositions[equip];
+    if (pos) {
+      firstPage.drawText("X", { x: pos.x, y: pos.y, size: 10, font: fontBold });
+    }
+  });
+  
+  // Dados do Equipamento
+  firstPage.drawText(formData.patrimonioNumeroSerie, { x: 450, y: height - 189, size: smallFont, font });
+  firstPage.drawText(formData.equipComDefeito, { x: 450, y: height - 199, size: smallFont, font });
+  firstPage.drawText(formData.marca, { x: 450, y: height - 219, size: smallFont, font });
+  firstPage.drawText(formData.modelo, { x: 520, y: height - 219, size: smallFont, font });
+  
+  // Origem do equipamento - checkbox
+  const origemPositions: { [key: string]: { x: number; y: number } } = {
+    "E1-Novo Delfia": { x: 355, y: height - 241 },
+    "E2-Novo Parceiro": { x: 422, y: height - 241 },
+    "E3-Recond. Delfia": { x: 490, y: height - 241 },
+    "E4-Equip.Americanas": { x: 355, y: height - 251 },
+    "E5-Peça-Delfia": { x: 355, y: height - 251 },
+    "E6-Peça-Parceiro": { x: 422, y: height - 251 },
+    "E7-Peça-Americanas": { x: 490, y: height - 251 },
+    "E8-Garantia Schalter": { x: 355, y: height - 261 },
+    "E9-Garantia Delfia": { x: 355, y: height - 271 },
+    "E10-Garantia Parceiro": { x: 422, y: height - 271 },
+  };
+  
+  const origemPos = origemPositions[formData.origemEquipamento];
+  if (origemPos) {
+    firstPage.drawText("X", { x: origemPos.x, y: origemPos.y, size: 9, font: fontBold });
+  }
+  
+  // Dados da troca
+  if (formData.numeroSerieTroca) {
+    firstPage.drawText(formData.numeroSerieTroca, { x: 130, y: height - 283, size: smallFont, font });
+    firstPage.drawText(formData.equipNovoRecond || "", { x: 290, y: height - 283, size: smallFont, font });
+    firstPage.drawText(formData.marcaTroca, { x: 130, y: height - 293, size: smallFont, font });
+    firstPage.drawText(formData.modeloTroca, { x: 290, y: height - 293, size: smallFont, font });
+  }
+  
+  // PEÇAS/CABOS - Marcar checkboxes
+  const pecasCabosPositions: { [key: string]: { x: number; y: number } } = {
+    "13-CPU/Desktop-HD/SSD": { x: 49, y: height - 327 },
+    "14-CPU/Desktop-Memória": { x: 49, y: height - 337 },
+    "15-CPU/Desktop-Fonte Interna": { x: 49, y: height - 347 },
+    "16-CPU/Desktop-Fonte Externa": { x: 49, y: height - 357 },
+    "17-CPU/Desktop-Mother Board": { x: 49, y: height - 367 },
+    "18-CPU/Desktop-Botão Power": { x: 49, y: height - 377 },
+    "19-CPU/Desktop-Gabinete": { x: 49, y: height - 387 },
+    "20-CPU/Desktop-Teclado ABNT": { x: 49, y: height - 397 },
+    "21-CPU/Desktop-Bateria CMOS": { x: 49, y: height - 407 },
+    "22-Imp-PDV-Fonte": { x: 49, y: height - 417 },
+    "23-Imp-PDV-Placa Lógica": { x: 49, y: height - 427 },
+    "24-Imp-PDV-Tampa": { x: 49, y: height - 437 },
+    "25-Gaveta-Miolo": { x: 49, y: height - 447 },
+    "26-Gaveta-Solenoide": { x: 245, y: height - 327 },
+    "27-Gaveta-Miolo": { x: 245, y: height - 337 },
+    "28-Gaveta-Chave": { x: 245, y: height - 347 },
+    "29-Gaveta-Cabo RJ": { x: 245, y: height - 357 },
+    "30-Monitor-Base": { x: 245, y: height - 367 },
+    "31-Monitor-Fonte": { x: 245, y: height - 377 },
+    "32-Cabo-Scanner": { x: 245, y: height - 387 },
+    "33-Cabo-Teclado": { x: 245, y: height - 397 },
+    "34-Cabo-Força": { x: 245, y: height - 407 },
+    "35-Cabo-VGA/HDI": { x: 245, y: height - 417 },
+    "36-Cabo-USB": { x: 245, y: height - 427 },
+    "37-Cabo-Sata": { x: 245, y: height - 437 },
+  };
+  
+  formData.pecasCabos.forEach((peca) => {
+    const pos = pecasCabosPositions[peca];
+    if (pos) {
+      firstPage.drawText("X", { x: pos.x, y: pos.y, size: 9, font: fontBold });
+    }
+  });
+  
+  // PEÇAS IMPRESSORA - Marcar checkboxes
+  const pecasImpressoraPositions: { [key: string]: { x: number; y: number } } = {
+    "39-Cabeça Imp.": { x: 420, y: height - 327 },
+    "40-Sup. Cabeça": { x: 420, y: height - 337 },
+    "41-Platen": { x: 420, y: height - 347 },
+    "42-Sensor Cabeça": { x: 420, y: height - 357 },
+    "43-Sensor Etiqueta": { x: 420, y: height - 367 },
+    "44-Placa Lógica": { x: 420, y: height - 377 },
+    "45-Placa Fonte": { x: 420, y: height - 387 },
+    "46-Fonte Externa": { x: 420, y: height - 397 },
+    "47-Trava Cabeça": { x: 420, y: height - 407 },
+    "48-Kit Engrenagens": { x: 420, y: height - 417 },
+    "49-Correia": { x: 420, y: height - 427 },
+    "50-Painel": { x: 420, y: height - 437 },
+    "51-Print Server": { x: 420, y: height - 447 },
+  };
+  
+  formData.pecasImpressora.forEach((peca) => {
+    const pos = pecasImpressoraPositions[peca];
+    if (pos) {
+      firstPage.drawText("X", { x: pos.x, y: pos.y, size: 9, font: fontBold });
+    }
+  });
+  
+  // Mau uso checkbox
+  if (formData.mauUso === "sim") {
+    firstPage.drawText("X", { x: 549, y: height - 327, size: 9, font: fontBold });
+  } else {
+    firstPage.drawText("X", { x: 567, y: height - 327, size: 9, font: fontBold });
+  }
+  
+  // Observações peças
+  if (formData.observacoesPecas) {
+    firstPage.drawText(formData.observacoesPecas.substring(0, 80), { 
+      x: 455, y: height - 347, size: smallFont, font 
+    });
+  }
+  
+  // LAUDO TÉCNICO
+  const drawMultilineText = (text: string, x: number, startY: number, maxWidth: number, lineHeight: number) => {
+    const words = text.split(" ");
+    let line = "";
+    let y = startY;
+    
+    words.forEach((word) => {
+      const testLine = line + word + " ";
+      const textWidth = font.widthOfTextAtSize(testLine, smallFont);
+      
+      if (textWidth > maxWidth && line !== "") {
+        firstPage.drawText(line.trim(), { x, y, size: smallFont, font });
+        line = word + " ";
+        y -= lineHeight;
+      } else {
+        line = testLine;
+      }
+    });
+    
+    if (line.trim()) {
+      firstPage.drawText(line.trim(), { x, y, size: smallFont, font });
     }
   };
-
-  // Cabeçalho
-  doc.setFontSize(16);
-  doc.setFont("helvetica", "bold");
-  doc.text("RELATÓRIO DE ATENDIMENTO TÉCNICO - RAT", pageWidth / 2, yPosition, { align: "center" });
-  yPosition += 10;
-
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
-
-  // Seção Identificação
-  doc.setFont("helvetica", "bold");
-  doc.text("IDENTIFICAÇÃO", 15, yPosition);
-  yPosition += 6;
-  doc.setFont("helvetica", "normal");
-
-  addText(`Cliente: LOJAS AMERICANAS`, 15, yPosition);
-  yPosition += 5;
-  addText(`Código da Loja: ${formData.codigoLoja}    PDV: ${formData.pdv}    FSA: ${formData.fsa}`, 15, yPosition);
-  yPosition += 5;
-  addText(`Endereço: ${formData.endereco}`, 15, yPosition);
-  yPosition += 5;
-  addText(`Cidade: ${formData.cidade}    UF: ${formData.uf}`, 15, yPosition);
-  yPosition += 5;
-  addText(`Nome do solicitante: ${formData.nomeSolicitante}`, 15, yPosition);
-  yPosition += 8;
-
-  // Seção Equipamentos Envolvidos
-  doc.setFont("helvetica", "bold");
-  doc.text("EQUIPAMENTOS ENVOLVIDOS", 15, yPosition);
-  yPosition += 6;
-  doc.setFont("helvetica", "normal");
-
-  if (formData.equipamentos.length > 0) {
-    addText(`Equipamentos: ${formData.equipamentos.join(", ")}`, 15, yPosition, pageWidth - 30);
-    yPosition += Math.ceil(formData.equipamentos.join(", ").length / 80) * 5 + 3;
+  
+  // Defeito/Problema
+  if (formData.defeitoProblema) {
+    drawMultilineText(formData.defeitoProblema, 50, height - 485, 520, 10);
   }
-
-  addText(`Patrimônio/Número Série: ${formData.patrimonioNumeroSerie}`, 15, yPosition);
-  yPosition += 5;
-  addText(`Equip. com defeito: ${formData.equipComDefeito}`, 15, yPosition);
-  yPosition += 5;
-  addText(`Marca: ${formData.marca}    Modelo: ${formData.modelo}`, 15, yPosition);
-  yPosition += 5;
-  addText(`Origem: ${formData.origemEquipamento}`, 15, yPosition);
-  yPosition += 5;
-
-  if (formData.numeroSerieTroca) {
-    addText(`Troca - Número Série: ${formData.numeroSerieTroca}`, 15, yPosition);
-    yPosition += 5;
-    addText(`Marca: ${formData.marcaTroca}    Modelo: ${formData.modeloTroca}`, 15, yPosition);
-    yPosition += 5;
+  
+  // Diagnóstico/Testes
+  if (formData.diagnosticoTestes) {
+    drawMultilineText(formData.diagnosticoTestes, 50, height - 535, 520, 10);
   }
-  yPosition += 3;
-
-  // Seção Peças/Cabos
-  if (formData.pecasCabos.length > 0) {
-    doc.setFont("helvetica", "bold");
-    doc.text("PEÇAS/CABOS", 15, yPosition);
-    yPosition += 6;
-    doc.setFont("helvetica", "normal");
-    
-    addText(formData.pecasCabos.join(", "), 15, yPosition, pageWidth - 30);
-    yPosition += Math.ceil(formData.pecasCabos.join(", ").length / 80) * 5 + 6;
+  
+  // Solução
+  if (formData.solucao) {
+    drawMultilineText(formData.solucao, 50, height - 605, 520, 10);
   }
-
-  // Seção Peças Impressora
-  if (formData.pecasImpressora.length > 0) {
-    doc.setFont("helvetica", "bold");
-    doc.text("PEÇAS IMP. TÉRMICA", 15, yPosition);
-    yPosition += 6;
-    doc.setFont("helvetica", "normal");
-    
-    addText(formData.pecasImpressora.join(", "), 15, yPosition, pageWidth - 30);
-    yPosition += Math.ceil(formData.pecasImpressora.join(", ").length / 80) * 5 + 3;
-    addText(`Mau uso: ${formData.mauUso === "sim" ? "Sim" : "Não"}`, 15, yPosition);
-    yPosition += 5;
-    if (formData.observacoesPecas) {
-      yPosition += addText(`Observações: ${formData.observacoesPecas}`, 15, yPosition, pageWidth - 30);
+  
+  // Problema resolvido
+  if (formData.problemaResolvido === "sim") {
+    firstPage.drawText("X", { x: 203, y: height - 648, size: 9, font: fontBold });
+  } else {
+    firstPage.drawText("X", { x: 220, y: height - 648, size: 9, font: fontBold });
+    if (formData.motivoNaoResolvido) {
+      firstPage.drawText(formData.motivoNaoResolvido.substring(0, 50), { 
+        x: 280, y: height - 648, size: smallFont, font 
+      });
     }
-    yPosition += 3;
   }
-
-  // Verificar se precisa de nova página
-  if (yPosition > 240) {
-    doc.addPage();
-    yPosition = 15;
+  
+  // Haverá retorno
+  if (formData.haveraRetorno === "sim") {
+    firstPage.drawText("X", { x: 535, y: height - 648, size: 9, font: fontBold });
+  } else {
+    firstPage.drawText("X", { x: 555, y: height - 648, size: 9, font: fontBold });
   }
-
-  // Seção Laudo Técnico
-  doc.setFont("helvetica", "bold");
-  doc.text("CONSIDERAÇÕES GERAIS – LAUDO TÉCNICO", 15, yPosition);
-  yPosition += 6;
-  doc.setFont("helvetica", "normal");
-
-  doc.setFont("helvetica", "bold");
-  addText("Defeito/Problema:", 15, yPosition);
-  yPosition += 5;
-  doc.setFont("helvetica", "normal");
-  yPosition += addText(formData.defeitoProblema || "N/A", 15, yPosition, pageWidth - 30);
-
-  doc.setFont("helvetica", "bold");
-  addText("Diagnóstico/Testes realizados:", 15, yPosition);
-  yPosition += 5;
-  doc.setFont("helvetica", "normal");
-  yPosition += addText(formData.diagnosticoTestes || "N/A", 15, yPosition, pageWidth - 30);
-
-  doc.setFont("helvetica", "bold");
-  addText("Solução:", 15, yPosition);
-  yPosition += 5;
-  doc.setFont("helvetica", "normal");
-  yPosition += addText(formData.solucao || "N/A", 15, yPosition, pageWidth - 30);
-
-  addText(`Problema resolvido? ${formData.problemaResolvido === "sim" ? "Sim" : "Não"}`, 15, yPosition);
-  yPosition += 5;
-
-  if (formData.problemaResolvido === "nao" && formData.motivoNaoResolvido) {
-    addText(`Motivo: ${formData.motivoNaoResolvido}`, 15, yPosition, pageWidth - 30);
-    yPosition += 5;
-  }
-
-  addText(`Haverá retorno? ${formData.haveraRetorno === "sim" ? "Sim" : "Não"}`, 15, yPosition);
-  yPosition += 8;
-
+  
   // Horários e Data
+  firstPage.drawText(formData.horaInicio, { x: 100, y: height - 665, size: fontSize, font });
+  firstPage.drawText(formData.horaTermino, { x: 253, y: height - 665, size: fontSize, font });
+  
   const dataFormatada = formData.data ? new Date(formData.data).toLocaleDateString("pt-BR") : "";
-  addText(`Hora início: ${formData.horaInicio}    Hora término: ${formData.horaTermino}    Data: ${dataFormatada}`, 15, yPosition);
-  yPosition += 10;
-
-  // Dados Cliente e Prestador
-  doc.setFont("helvetica", "bold");
-  doc.text("CLIENTE", 15, yPosition);
-  doc.text("PRESTADOR", pageWidth / 2 + 10, yPosition);
-  yPosition += 6;
-  doc.setFont("helvetica", "normal");
-
-  addText(`Nome: ${formData.clienteNome}`, 15, yPosition);
-  addText(`Nome: ${formData.prestadorNome}`, pageWidth / 2 + 10, yPosition);
-  yPosition += 5;
-
-  addText(`RG/Matrícula: ${formData.clienteRgMatricula}`, 15, yPosition);
-  addText(`RG/Matrícula: ${formData.prestadorRgMatricula}`, pageWidth / 2 + 10, yPosition);
-  yPosition += 5;
-
-  addText(`Telefone: ${formData.clienteTelefone}`, 15, yPosition);
-  addText(`Telefone: ${formData.prestadorTelefone}`, pageWidth / 2 + 10, yPosition);
-  yPosition += 15;
-
-  // Assinaturas
-  doc.line(15, yPosition, 85, yPosition);
-  doc.line(pageWidth / 2 + 10, yPosition, pageWidth - 15, yPosition);
-  yPosition += 5;
-  doc.setFontSize(8);
-  doc.text("Assinatura e Carimbo Cliente", 15, yPosition);
-  doc.text("Assinatura Prestador", pageWidth / 2 + 10, yPosition);
-
-  // Rodapé
-  doc.setFontSize(8);
-  doc.text("Relatório Prestador de Serviços - Versão 2.4", pageWidth / 2, doc.internal.pageSize.getHeight() - 10, {
-    align: "center",
-  });
-
-  // Abrir janela de impressão
-  doc.autoPrint();
-  window.open(doc.output("bloburl"), "_blank");
+  firstPage.drawText(dataFormatada, { x: 485, y: height - 665, size: fontSize, font });
+  
+  // CLIENTE
+  firstPage.drawText(formData.clienteNome, { x: 120, y: height - 695, size: fontSize, font });
+  firstPage.drawText(formData.clienteRgMatricula, { x: 120, y: height - 715, size: fontSize, font });
+  firstPage.drawText(formData.clienteTelefone, { x: 120, y: height - 735, size: fontSize, font });
+  
+  // PRESTADOR
+  firstPage.drawText(formData.prestadorNome, { x: 450, y: height - 695, size: fontSize, font });
+  firstPage.drawText(formData.prestadorRgMatricula, { x: 450, y: height - 715, size: fontSize, font });
+  firstPage.drawText(formData.prestadorTelefone, { x: 450, y: height - 735, size: fontSize, font });
+  
+  // Salvar e abrir PDF
+  const pdfBytes = await pdfDoc.save();
+  const blob = new Blob([new Uint8Array(pdfBytes)], { type: "application/pdf" });
+  const url = URL.createObjectURL(blob);
+  window.open(url, "_blank");
 };

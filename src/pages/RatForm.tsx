@@ -144,9 +144,9 @@ const RatForm = () => {
     }
   };
 
-  const handleGeneratePDF = () => {
+  const handleGeneratePDF = async () => {
     try {
-      generateRatPDF(formData);
+      await generateRatPDF(formData);
       toast.success("PDF gerado com sucesso!");
     } catch (error) {
       toast.error("Erro ao gerar PDF");
