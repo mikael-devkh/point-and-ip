@@ -8,140 +8,41 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { Navigation } from "@/components/Navigation";
-import { FileText, Printer } from "lucide-react";
+import { FileText, Printer, RotateCcw, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { generateRatPDF } from "@/utils/ratPdfGenerator";
-
-interface RatFormData {
-  // Identificação
-  codigoLoja: string;
-  pdv: string;
-  fsa: string;
-  endereco: string;
-  cidade: string;
-  uf: string;
-  nomeSolicitante: string;
-
-  // Equipamentos
-  equipamentos: string[];
-  patrimonioNumeroSerie: string;
-  equipComDefeito: string;
-  marca: string;
-  modelo: string;
-  origemEquipamento: string;
-  numeroSerieTroca: string;
-  equipNovoRecond: string;
-  marcaTroca: string;
-  modeloTroca: string;
-
-  // Peças/Cabos
-  pecasCabos: string[];
-  
-  // Peças Impressora
-  pecasImpressora: string[];
-  mauUso: string;
-  observacoesPecas: string;
-
-  // Laudo Técnico
-  defeitoProblema: string;
-  diagnosticoTestes: string;
-  solucao: string;
-  problemaResolvido: string;
-  motivoNaoResolvido: string;
-  haveraRetorno: string;
-  horaInicio: string;
-  horaTermino: string;
-  data: string;
-
-  // Cliente
-  clienteNome: string;
-  clienteRgMatricula: string;
-  clienteTelefone: string;
-
-  // Prestador
-  prestadorNome: string;
-  prestadorRgMatricula: string;
-  prestadorTelefone: string;
-}
+import { RatFormData } from "@/types/rat";
+import {
+  cloneRatFormData,
+  createEmptyRatFormData,
+  equipamentoOptions,
+  origemEquipamentoOptions,
+  pecasCabosOptions,
+  pecasImpressoraOptions,
+  sampleRatFormData,
+} from "@/data/ratOptions";
 
 const RatForm = () => {
-  const [formData, setFormData] = useState<RatFormData>({
-    codigoLoja: "",
-    pdv: "",
-    fsa: "",
-    endereco: "",
-    cidade: "",
-    uf: "",
-    nomeSolicitante: "",
-    equipamentos: [],
-    patrimonioNumeroSerie: "",
-    equipComDefeito: "",
-    marca: "",
-    modelo: "",
-    origemEquipamento: "",
-    numeroSerieTroca: "",
-    equipNovoRecond: "",
-    marcaTroca: "",
-    modeloTroca: "",
-    pecasCabos: [],
-    pecasImpressora: [],
-    mauUso: "",
-    observacoesPecas: "",
-    defeitoProblema: "",
-    diagnosticoTestes: "",
-    solucao: "",
-    problemaResolvido: "",
-    motivoNaoResolvido: "",
-    haveraRetorno: "",
-    horaInicio: "",
-    horaTermino: "",
-    data: "",
-    clienteNome: "",
-    clienteRgMatricula: "",
-    clienteTelefone: "",
-    prestadorNome: "",
-    prestadorRgMatricula: "",
-    prestadorTelefone: "",
-  });
+  const [formData, setFormData] = useState<RatFormData>(() => createEmptyRatFormData());
 
-  const equipamentosList = [
-    "01-PDV-Teclado", "02-PDV-Scanner", "03-PDV-Impressora", "04-PDV-Monitor",
-    "05-PDV-Gaveta", "06-PDV-CPU", "07-Desktop-Gerente", "08-Desktop +Aqui",
-    "09-Desktop-Almox.", "10-Desktop-Tesouraria", "11-Impressora-Zebra/Printronix", "12-Outros..."
-  ];
-
-  const origemEquipamentos = [
-    "E1-Novo Delfia", "E2-Novo Parceiro", "E3-Recond. Delfia", "E4-Equip.Americanas",
-    "E5-Peça-Delfia", "E6-Peça-Parceiro", "E7-Peça-Americanas", "E8-Garantia Schalter",
-    "E9-Garantia Delfia", "E10-Garantia Parceiro"
-  ];
-
-  const pecasCabosList = [
-    "13-CPU/Desktop - HD/SSD", "14-CPU/Desktop - Memória", "15-CPU/Desktop - Fonte Interna",
-    "16-CPU/Desktop - Fonte Externa", "17-CPU/Desktop - Mother Board", "18-CPU/Desktop - Botão Power",
-    "19-CPU/Desktop – Gabinete", "20-CPU/Desktop – Teclado ABNT", "21-CPU/Desktop - Bateria CMOS",
-    "22-Imp-PDV-Fonte", "23-Imp-PDV-Placa Lógica", "24-Imp-PDV-Tampa",
-    "25-Gaveta-Miolo", "26-Gaveta-Solenoide", "27-Gaveta-Miolo",
-    "28-Gaveta-Chave", "29-Gaveta-Cabo RJ", "30-Monitor-Base",
-    "31-Monitor-Fonte", "32-Cabo-Scanner", "33-Cabo-Teclado",
-    "34-Cabo-Força", "35-Cabo-VGA/HDI", "36-Cabo-USB",
-    "37-Cabo-Sata", "38-Outros"
-  ];
-
-  const pecasImpressoraList = [
-    "39-Cabeça Imp.", "40-Sup. Cabeça", "41-Platen",
-    "42-Sensor Cabeça", "43-Sensor Etiqueta", "44-Placa Lógica",
-    "45-Placa Fonte", "46-Fonte Externa", "47-Trava Cabeça",
-    "48-Kit Engrenagens", "49-Correia", "50-Painel",
-    "51-Print Server", "52-Outros"
-  ];
-
-  const handleCheckboxChange = (list: string[], item: string, checked: boolean) => {
+  const toggleListValue = (list: string[], value: string, checked: boolean) => {
     if (checked) {
-      return [...list, item];
-    } else {
-      return list.filter((i) => i !== item);
+      return Array.from(new Set([...list, value]));
     }
+    return list.filter((item) => item !== value);
+  };
+
+  const buildCheckboxId = (prefix: string, value: string) =>
+    `${prefix}-${value}`.replace(/[^a-zA-Z0-9-_]/g, "-");
+
+  const handleUseSampleData = () => {
+    setFormData(cloneRatFormData(sampleRatFormData));
+    toast.success("Formulário preenchido com dados de teste.");
+  };
+
+  const handleResetForm = () => {
+    setFormData(createEmptyRatFormData());
+    toast.info("Formulário limpo.");
   };
 
   const handleGeneratePDF = async () => {
@@ -174,6 +75,17 @@ const RatForm = () => {
         </header>
 
         <Card className="p-6 space-y-8">
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button type="button" variant="outline" onClick={handleResetForm}>
+              <RotateCcw className="mr-2 h-4 w-4" />
+              Limpar formulário
+            </Button>
+            <Button type="button" variant="secondary" onClick={handleUseSampleData}>
+              <Sparkles className="mr-2 h-4 w-4" />
+              Preencher com exemplo
+            </Button>
+          </div>
+
           {/* Identificação */}
           <section className="space-y-4">
             <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
@@ -252,23 +164,30 @@ const RatForm = () => {
             <Separator />
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {equipamentosList.map((equip) => (
-                <div key={equip} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={equip}
-                    checked={formData.equipamentos.includes(equip)}
-                    onCheckedChange={(checked) =>
-                      setFormData({
-                        ...formData,
-                        equipamentos: handleCheckboxChange(formData.equipamentos, equip, checked as boolean),
-                      })
-                    }
-                  />
-                  <label htmlFor={equip} className="text-sm cursor-pointer">
-                    {equip}
-                  </label>
-                </div>
-              ))}
+              {equipamentoOptions.map((equip) => {
+                const checkboxId = buildCheckboxId("equip", equip.value);
+                return (
+                  <div key={equip.value} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={checkboxId}
+                      checked={formData.equipamentos.includes(equip.value)}
+                      onCheckedChange={(checked) =>
+                        setFormData({
+                          ...formData,
+                          equipamentos: toggleListValue(
+                            formData.equipamentos,
+                            equip.value,
+                            checked as boolean
+                          ),
+                        })
+                      }
+                    />
+                    <label htmlFor={checkboxId} className="text-sm cursor-pointer">
+                      {equip.label}
+                    </label>
+                  </div>
+                );
+              })}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
@@ -309,23 +228,26 @@ const RatForm = () => {
             <div className="space-y-2">
               <Label>Origem do Equipamento</Label>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {origemEquipamentos.map((origem) => (
-                  <div key={origem} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={origem}
-                      checked={formData.origemEquipamento === origem}
-                      onCheckedChange={(checked) =>
-                        setFormData({
-                          ...formData,
-                          origemEquipamento: checked ? origem : "",
-                        })
-                      }
-                    />
-                    <label htmlFor={origem} className="text-sm cursor-pointer">
-                      {origem}
-                    </label>
-                  </div>
-                ))}
+                {origemEquipamentoOptions.map((origem) => {
+                  const checkboxId = buildCheckboxId("origem", origem.value);
+                  return (
+                    <div key={origem.value} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={checkboxId}
+                        checked={formData.origemEquipamento === origem.value}
+                        onCheckedChange={(checked) =>
+                          setFormData({
+                            ...formData,
+                            origemEquipamento: checked ? origem.value : "",
+                          })
+                        }
+                      />
+                      <label htmlFor={checkboxId} className="text-sm cursor-pointer">
+                        {origem.label}
+                      </label>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
@@ -371,23 +293,30 @@ const RatForm = () => {
             <Separator />
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {pecasCabosList.map((peca) => (
-                <div key={peca} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={peca}
-                    checked={formData.pecasCabos.includes(peca)}
-                    onCheckedChange={(checked) =>
-                      setFormData({
-                        ...formData,
-                        pecasCabos: handleCheckboxChange(formData.pecasCabos, peca, checked as boolean),
-                      })
-                    }
-                  />
-                  <label htmlFor={peca} className="text-sm cursor-pointer">
-                    {peca}
-                  </label>
-                </div>
-              ))}
+              {pecasCabosOptions.map((peca) => {
+                const checkboxId = buildCheckboxId("peca-cabo", peca.value);
+                return (
+                  <div key={peca.value} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={checkboxId}
+                      checked={formData.pecasCabos.includes(peca.value)}
+                      onCheckedChange={(checked) =>
+                        setFormData({
+                          ...formData,
+                          pecasCabos: toggleListValue(
+                            formData.pecasCabos,
+                            peca.value,
+                            checked as boolean
+                          ),
+                        })
+                      }
+                    />
+                    <label htmlFor={checkboxId} className="text-sm cursor-pointer">
+                      {peca.label}
+                    </label>
+                  </div>
+                );
+              })}
             </div>
           </section>
 
@@ -397,23 +326,30 @@ const RatForm = () => {
             <Separator />
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {pecasImpressoraList.map((peca) => (
-                <div key={peca} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={peca}
-                    checked={formData.pecasImpressora.includes(peca)}
-                    onCheckedChange={(checked) =>
-                      setFormData({
-                        ...formData,
-                        pecasImpressora: handleCheckboxChange(formData.pecasImpressora, peca, checked as boolean),
-                      })
-                    }
-                  />
-                  <label htmlFor={peca} className="text-sm cursor-pointer">
-                    {peca}
-                  </label>
-                </div>
-              ))}
+              {pecasImpressoraOptions.map((peca) => {
+                const checkboxId = buildCheckboxId("peca-imp", peca.value);
+                return (
+                  <div key={peca.value} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={checkboxId}
+                      checked={formData.pecasImpressora.includes(peca.value)}
+                      onCheckedChange={(checked) =>
+                        setFormData({
+                          ...formData,
+                          pecasImpressora: toggleListValue(
+                            formData.pecasImpressora,
+                            peca.value,
+                            checked as boolean
+                          ),
+                        })
+                      }
+                    />
+                    <label htmlFor={checkboxId} className="text-sm cursor-pointer">
+                      {peca.label}
+                    </label>
+                  </div>
+                );
+              })}
             </div>
 
             <div className="space-y-2">
