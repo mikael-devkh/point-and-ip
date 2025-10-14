@@ -56,34 +56,34 @@ export const generateRatPDF = async (formData: RatFormData) => {
   
   // IDENTIFICAÇÃO - Campos na linha horizontal
   // Código da Loja
-  firstPage.drawText(formData.codigoLoja, { x: 300, y: height - 100, size: fontSize, font });
+  firstPage.drawText(formData.codigoLoja, { x: 265, y: height - 138, size: 10, font });
   // PDV
-  firstPage.drawText(formData.pdv, { x: 423, y: height - 100, size: fontSize, font });
+  firstPage.drawText(formData.pdv, { x: 545, y: height - 138, size: 10, font });
   // FSA
-  firstPage.drawText(formData.fsa, { x: 490, y: height - 100, size: fontSize, font });
+  firstPage.drawText(formData.fsa, { x: 685, y: height - 138, size: 10, font });
   // Endereço
-  firstPage.drawText(formData.endereco, { x: 118, y: height - 117, size: fontSize, font });
+  firstPage.drawText(formData.endereco, { x: 80, y: height - 164, size: 9, font });
   // Cidade
-  firstPage.drawText(formData.cidade, { x: 400, y: height - 117, size: fontSize, font });
+  firstPage.drawText(formData.cidade, { x: 545, y: height - 164, size: 9, font });
   // UF
-  firstPage.drawText(formData.uf, { x: 580, y: height - 117, size: fontSize, font });
+  firstPage.drawText(formData.uf, { x: 775, y: height - 164, size: 9, font });
   // Nome do solicitante
-  firstPage.drawText(formData.nomeSolicitante, { x: 138, y: height - 133, size: fontSize, font });
+  firstPage.drawText(formData.nomeSolicitante, { x: 55, y: height - 190, size: 9, font });
   
   // EQUIPAMENTOS ENVOLVIDOS - Checkboxes
   const equipmentPositions: { [key: string]: { x: number; y: number } } = {
-    "01-PDV-Teclado": { x: 56, y: height - 169 },
-    "02-PDV-Scanner": { x: 56, y: height - 178 },
-    "03-PDV-Impressora": { x: 56, y: height - 187 },
-    "04-PDV-Monitor": { x: 56, y: height - 196 },
-    "05-PDV-Gaveta": { x: 56, y: height - 205 },
-    "06-PDV-CPU": { x: 56, y: height - 214 },
-    "07-Desktop-Gerente": { x: 210, y: height - 169 },
-    "08-Desktop +Aqui": { x: 210, y: height - 178 },
-    "09-Desktop-Almox.": { x: 210, y: height - 187 },
-    "10-Desktop-Tesouraria": { x: 210, y: height - 196 },
-    "11-Impressora-Zebra/Printronix": { x: 210, y: height - 205 },
-    "12-Outros": { x: 210, y: height - 214 },
+    "01-PDV-Teclado": { x: 40, y: height - 234 },
+    "02-PDV-Scanner": { x: 40, y: height - 246 },
+    "03-PDV-Impressora": { x: 245, y: height - 234 },
+    "04-PDV-Monitor": { x: 40, y: height - 258 },
+    "05-PDV-Gaveta": { x: 40, y: height - 270 },
+    "06-PDV-CPU": { x: 40, y: height - 282 },
+    "07-Desktop-Gerente": { x: 245, y: height - 246 },
+    "08-Desktop +Aqui": { x: 245, y: height - 258 },
+    "09-Desktop-Almox.": { x: 245, y: height - 270 },
+    "10-Desktop-Tesouraria": { x: 245, y: height - 282 },
+    "11-Impressora-Zebra/Printronix": { x: 245, y: height - 294 },
+    "12-Outros": { x: 245, y: height - 306 },
   };
   
   formData.equipamentos.forEach((equip) => {
@@ -94,90 +94,93 @@ export const generateRatPDF = async (formData: RatFormData) => {
   });
   
   // Dados do Equipamento - Coluna direita
+  // Patrimônio
+  firstPage.drawText(formData.patrimonioNumeroSerie, { x: 770, y: height - 234, size: 8, font });
   // Número Série ATIVO
-  firstPage.drawText(formData.patrimonioNumeroSerie, { x: 380, y: height - 180, size: smallFont, font });
+  firstPage.drawText(formData.patrimonioNumeroSerie, { x: 470, y: height - 246, size: 8, font });
   // Equip. com defeito
-  firstPage.drawText(formData.equipComDefeito, { x: 380, y: height - 189, size: smallFont, font });
+  firstPage.drawText(formData.equipComDefeito, { x: 470, y: height - 258, size: 8, font });
   // Marca
-  firstPage.drawText(formData.marca, { x: 300, y: height - 205, size: smallFont, font });
+  firstPage.drawText(formData.marca, { x: 455, y: height - 270, size: 8, font });
   // Modelo
-  firstPage.drawText(formData.modelo, { x: 440, y: height - 205, size: smallFont, font });
+  firstPage.drawText(formData.modelo, { x: 635, y: height - 270, size: 8, font });
   
   // Origem do equipamento - 3 linhas de checkboxes
   // Linha 1: E1, E2, E3, E4
-  const origemY1 = height - 222;
+  const origemY1 = height - 282;
   if (formData.origemEquipamento.includes("E1-Novo Delfia")) {
-    firstPage.drawText("X", { x: 300, y: origemY1, size: 7, font: fontBold });
+    firstPage.drawText("X", { x: 455, y: origemY1, size: 7, font: fontBold });
   }
   if (formData.origemEquipamento.includes("E2-Novo Parceiro")) {
-    firstPage.drawText("X", { x: 386, y: origemY1, size: 7, font: fontBold });
+    firstPage.drawText("X", { x: 555, y: origemY1, size: 7, font: fontBold });
   }
   if (formData.origemEquipamento.includes("E3-Recond. Delfia")) {
-    firstPage.drawText("X", { x: 445, y: origemY1, size: 7, font: fontBold });
+    firstPage.drawText("X", { x: 645, y: origemY1, size: 7, font: fontBold });
   }
   if (formData.origemEquipamento.includes("E4-Equip.Americanas")) {
-    firstPage.drawText("X", { x: 520, y: origemY1, size: 7, font: fontBold });
+    firstPage.drawText("X", { x: 745, y: origemY1, size: 7, font: fontBold });
   }
   
   // Linha 2: E5, E6, E7, E8
-  const origemY2 = height - 231;
+  const origemY2 = height - 294;
   if (formData.origemEquipamento.includes("E5-Peça-Delfia")) {
-    firstPage.drawText("X", { x: 300, y: origemY2, size: 7, font: fontBold });
+    firstPage.drawText("X", { x: 455, y: origemY2, size: 7, font: fontBold });
   }
   if (formData.origemEquipamento.includes("E6-Peça-Parceiro")) {
-    firstPage.drawText("X", { x: 386, y: origemY2, size: 7, font: fontBold });
+    firstPage.drawText("X", { x: 545, y: origemY2, size: 7, font: fontBold });
   }
   if (formData.origemEquipamento.includes("E7-Peça-Americanas")) {
-    firstPage.drawText("X", { x: 490, y: origemY2, size: 7, font: fontBold });
+    firstPage.drawText("X", { x: 665, y: origemY2, size: 7, font: fontBold });
   }
   if (formData.origemEquipamento.includes("E8-Garantia Schalter")) {
-    firstPage.drawText("X", { x: 300, y: height - 240, size: 7, font: fontBold });
+    firstPage.drawText("X", { x: 780, y: origemY2, size: 7, font: fontBold });
   }
   
   // Linha 3: E9, E10
-  const origemY3 = height - 240;
+  const origemY3 = height - 306;
   if (formData.origemEquipamento.includes("E9-Garantia Delfia")) {
-    firstPage.drawText("X", { x: 386, y: origemY3, size: 7, font: fontBold });
+    firstPage.drawText("X", { x: 455, y: origemY3, size: 7, font: fontBold });
   }
   if (formData.origemEquipamento.includes("E10-Garantia Parceiro")) {
-    firstPage.drawText("X", { x: 460, y: origemY3, size: 7, font: fontBold });
+    firstPage.drawText("X", { x: 555, y: origemY3, size: 7, font: fontBold });
   }
   
   // Dados da troca
   if (formData.numeroSerieTroca) {
-    firstPage.drawText(formData.numeroSerieTroca, { x: 380, y: height - 252, size: smallFont, font });
-    firstPage.drawText(formData.equipNovoRecond || "", { x: 300, y: height - 261, size: smallFont, font });
-    firstPage.drawText(formData.marcaTroca, { x: 300, y: height - 271, size: smallFont, font });
-    firstPage.drawText(formData.modeloTroca, { x: 440, y: height - 271, size: smallFont, font });
+    firstPage.drawText(formData.numeroSerieTroca, { x: 470, y: height - 318, size: 8, font });
+    firstPage.drawText(formData.equipNovoRecond || "", { x: 470, y: height - 330, size: 8, font });
+    firstPage.drawText(formData.marcaTroca, { x: 455, y: height - 342, size: 8, font });
+    firstPage.drawText(formData.modeloTroca, { x: 635, y: height - 342, size: 8, font });
   }
   
   // PEÇAS/CABOS - Checkboxes em 2 colunas
   const pecasCabosPositions: { [key: string]: { x: number; y: number } } = {
-    "13-CPU/Desktop-HD/SSD": { x: 56, y: height - 310 },
-    "14-CPU/Desktop-Memória": { x: 56, y: height - 319 },
-    "15-CPU/Desktop-Fonte Interna": { x: 56, y: height - 328 },
-    "16-CPU/Desktop-Fonte Externa": { x: 56, y: height - 337 },
-    "17-CPU/Desktop-Mother Board": { x: 56, y: height - 346 },
-    "18-CPU/Desktop-Botão Power": { x: 56, y: height - 355 },
-    "19-CPU/Desktop-Gabinete": { x: 56, y: height - 364 },
-    "20-CPU/Desktop-Teclado ABNT": { x: 56, y: height - 373 },
-    "21-CPU/Desktop-Bateria CMOS": { x: 56, y: height - 382 },
-    "22-Imp-PDV-Fonte": { x: 56, y: height - 391 },
-    "23-Imp-PDV-Placa Lógica": { x: 56, y: height - 400 },
-    "24-Imp-PDV-Tampa": { x: 56, y: height - 409 },
-    "25-Gaveta-Miolo": { x: 56, y: height - 418 },
-    "26-Gaveta-Solenoide": { x: 190, y: height - 310 },
-    "27-Gaveta-Miolo": { x: 190, y: height - 319 },
-    "28-Gaveta-Chave": { x: 190, y: height - 328 },
-    "29-Gaveta-Cabo RJ": { x: 190, y: height - 337 },
-    "30-Monitor-Base": { x: 190, y: height - 346 },
-    "31-Monitor-Fonte": { x: 190, y: height - 355 },
-    "32-Cabo-Scanner": { x: 190, y: height - 364 },
-    "33-Cabo-Teclado": { x: 190, y: height - 373 },
-    "34-Cabo-Força": { x: 190, y: height - 382 },
-    "35-Cabo-VGA/HDI": { x: 190, y: height - 391 },
-    "36-Cabo-USB": { x: 190, y: height - 400 },
-    "37-Cabo-Sata": { x: 190, y: height - 409 },
+    "13-CPU/Desktop-HD/SSD": { x: 40, y: height - 390 },
+    "14-CPU/Desktop-Memória": { x: 40, y: height - 402 },
+    "15-CPU/Desktop-Fonte Interna": { x: 40, y: height - 414 },
+    "16-CPU/Desktop-Fonte Externa": { x: 40, y: height - 426 },
+    "17-CPU/Desktop-Mother Board": { x: 40, y: height - 438 },
+    "18-CPU/Desktop-Botão Power": { x: 40, y: height - 450 },
+    "19-CPU/Desktop-Gabinete": { x: 40, y: height - 462 },
+    "20-CPU/Desktop-Teclado ABNT": { x: 40, y: height - 474 },
+    "21-CPU/Desktop-Bateria CMOS": { x: 40, y: height - 486 },
+    "22-Imp-PDV-Fonte": { x: 40, y: height - 498 },
+    "23-Imp-PDV-Placa Lógica": { x: 40, y: height - 510 },
+    "24-Imp-PDV-Tampa": { x: 40, y: height - 522 },
+    "25-Gaveta-Miolo": { x: 40, y: height - 534 },
+    "26-Gaveta-Solenoide": { x: 218, y: height - 390 },
+    "27-Gaveta-Miolo": { x: 218, y: height - 402 },
+    "28-Gaveta-Chave": { x: 218, y: height - 414 },
+    "29-Gaveta-Cabo RJ": { x: 218, y: height - 426 },
+    "30-Monitor-Base": { x: 218, y: height - 438 },
+    "31-Monitor-Fonte": { x: 218, y: height - 450 },
+    "32-Cabo-Scanner": { x: 218, y: height - 462 },
+    "33-Cabo-Teclado": { x: 218, y: height - 474 },
+    "34-Cabo-Força": { x: 218, y: height - 486 },
+    "35-Cabo-VGA/HDI": { x: 218, y: height - 498 },
+    "36-Cabo-USB": { x: 218, y: height - 510 },
+    "37-Cabo-Sata": { x: 218, y: height - 522 },
+    "38-Outros": { x: 218, y: height - 534 },
   };
   
   formData.pecasCabos.forEach((peca) => {
@@ -189,19 +192,20 @@ export const generateRatPDF = async (formData: RatFormData) => {
   
   // PEÇAS IMPRESSORA - Checkboxes coluna direita
   const pecasImpressoraPositions: { [key: string]: { x: number; y: number } } = {
-    "39-Cabeça Imp.": { x: 325, y: height - 310 },
-    "40-Sup. Cabeça": { x: 325, y: height - 319 },
-    "41-Platen": { x: 325, y: height - 328 },
-    "42-Sensor Cabeça": { x: 325, y: height - 337 },
-    "43-Sensor Etiqueta": { x: 325, y: height - 346 },
-    "44-Placa Lógica": { x: 325, y: height - 355 },
-    "45-Placa Fonte": { x: 325, y: height - 364 },
-    "46-Fonte Externa": { x: 325, y: height - 373 },
-    "47-Trava Cabeça": { x: 325, y: height - 382 },
-    "48-Kit Engrenagens": { x: 325, y: height - 391 },
-    "49-Correia": { x: 325, y: height - 400 },
-    "50-Painel": { x: 325, y: height - 409 },
-    "51-Print Server": { x: 325, y: height - 418 },
+    "39-Cabeça Imp.": { x: 455, y: height - 390 },
+    "40-Sup. Cabeça": { x: 455, y: height - 402 },
+    "41-Platen": { x: 455, y: height - 414 },
+    "42-Sensor Cabeça": { x: 455, y: height - 426 },
+    "43-Sensor Etiqueta": { x: 455, y: height - 438 },
+    "44-Placa Lógica": { x: 455, y: height - 450 },
+    "45-Placa Fonte": { x: 455, y: height - 462 },
+    "46-Fonte Externa": { x: 455, y: height - 474 },
+    "47-Trava Cabeça": { x: 455, y: height - 486 },
+    "48-Kit Engrenagens": { x: 455, y: height - 498 },
+    "49-Correia": { x: 455, y: height - 510 },
+    "50-Painel": { x: 455, y: height - 522 },
+    "51-Print Server": { x: 455, y: height - 534 },
+    "52-Outros": { x: 455, y: height - 546 },
   };
   
   formData.pecasImpressora.forEach((peca) => {
@@ -213,19 +217,19 @@ export const generateRatPDF = async (formData: RatFormData) => {
   
   // Mau uso checkboxes
   if (formData.mauUso === "sim") {
-    firstPage.drawText("X", { x: 520, y: height - 310, size: 8, font: fontBold });
+    firstPage.drawText("X", { x: 695, y: height - 390, size: 8, font: fontBold });
   } else {
-    firstPage.drawText("X", { x: 560, y: height - 310, size: 8, font: fontBold });
+    firstPage.drawText("X", { x: 740, y: height - 390, size: 8, font: fontBold });
   }
   
   // Observações peças - campo de texto
   if (formData.observacoesPecas) {
-    const lines = formData.observacoesPecas.match(/.{1,30}/g) || [];
-    lines.slice(0, 5).forEach((line, index) => {
+    const lines = formData.observacoesPecas.match(/.{1,25}/g) || [];
+    lines.slice(0, 8).forEach((line, index) => {
       firstPage.drawText(line, { 
-        x: 470, 
-        y: height - 328 - (index * 9), 
-        size: smallFont, 
+        x: 620, 
+        y: height - 408 - (index * 10), 
+        size: 7, 
         font 
       });
     });
@@ -260,55 +264,55 @@ export const generateRatPDF = async (formData: RatFormData) => {
   
   // Defeito/Problema
   if (formData.defeitoProblema) {
-    drawMultilineText(formData.defeitoProblema, 56, height - 454, 540, 2);
+    drawMultilineText(formData.defeitoProblema, 55, height - 582, 760, 2);
   }
   
   // Diagnóstico/Testes
   if (formData.diagnosticoTestes) {
-    drawMultilineText(formData.diagnosticoTestes, 56, height - 495, 540, 5);
+    drawMultilineText(formData.diagnosticoTestes, 55, height - 622, 760, 5);
   }
   
   // Solução
   if (formData.solucao) {
-    drawMultilineText(formData.solucao, 56, height - 565, 540, 5);
+    drawMultilineText(formData.solucao, 55, height - 690, 760, 5);
   }
   
   // Problema resolvido - checkboxes
   if (formData.problemaResolvido === "sim") {
-    firstPage.drawText("X", { x: 156, y: height - 622, size: 8, font: fontBold });
+    firstPage.drawText("X", { x: 125, y: height - 738, size: 8, font: fontBold });
   } else {
-    firstPage.drawText("X", { x: 178, y: height - 622, size: 8, font: fontBold });
+    firstPage.drawText("X", { x: 155, y: height - 738, size: 8, font: fontBold });
     // Motivo se não resolvido
     if (formData.motivoNaoResolvido) {
-      firstPage.drawText(formData.motivoNaoResolvido.substring(0, 25), { 
-        x: 260, y: height - 622, size: smallFont, font 
+      firstPage.drawText(formData.motivoNaoResolvido.substring(0, 40), { 
+        x: 280, y: height - 738, size: 7, font 
       });
     }
   }
   
   // Haverá retorno - checkboxes
   if (formData.haveraRetorno === "sim") {
-    firstPage.drawText("X", { x: 565, y: height - 622, size: 8, font: fontBold });
+    firstPage.drawText("X", { x: 730, y: height - 738, size: 8, font: fontBold });
   } else {
-    firstPage.drawText("X", { x: 586, y: height - 622, size: 8, font: fontBold });
+    firstPage.drawText("X", { x: 760, y: height - 738, size: 8, font: fontBold });
   }
   
   // Horários e Data
-  firstPage.drawText(formData.horaInicio, { x: 135, y: height - 639, size: fontSize, font });
-  firstPage.drawText(formData.horaTermino, { x: 250, y: height - 639, size: fontSize, font });
+  firstPage.drawText(formData.horaInicio, { x: 95, y: height - 755, size: 9, font });
+  firstPage.drawText(formData.horaTermino, { x: 265, y: height - 755, size: 9, font });
   
   const dataFormatada = formData.data ? new Date(formData.data).toLocaleDateString("pt-BR") : "";
-  firstPage.drawText(dataFormatada, { x: 530, y: height - 639, size: fontSize, font });
+  firstPage.drawText(dataFormatada, { x: 685, y: height - 755, size: 9, font });
   
   // CLIENTE - Dados na coluna esquerda
-  firstPage.drawText(formData.clienteNome, { x: 155, y: height - 672, size: fontSize, font });
-  firstPage.drawText(formData.clienteRgMatricula, { x: 245, y: height - 690, size: fontSize, font });
-  firstPage.drawText(formData.clienteTelefone, { x: 155, y: height - 708, size: fontSize, font });
+  firstPage.drawText(formData.clienteNome, { x: 120, y: height - 785, size: 9, font });
+  firstPage.drawText(formData.clienteRgMatricula, { x: 145, y: height - 802, size: 9, font });
+  firstPage.drawText(formData.clienteTelefone, { x: 95, y: height - 820, size: 9, font });
   
   // PRESTADOR - Dados na coluna direita
-  firstPage.drawText(formData.prestadorNome, { x: 485, y: height - 672, size: fontSize, font });
-  firstPage.drawText(formData.prestadorRgMatricula, { x: 545, y: height - 690, size: fontSize, font });
-  firstPage.drawText(formData.prestadorTelefone, { x: 485, y: height - 708, size: fontSize, font });
+  firstPage.drawText(formData.prestadorNome, { x: 565, y: height - 785, size: 9, font });
+  firstPage.drawText(formData.prestadorRgMatricula, { x: 565, y: height - 802, size: 9, font });
+  firstPage.drawText(formData.prestadorTelefone, { x: 565, y: height - 820, size: 9, font });
   
   // Salvar e abrir PDF
   const pdfBytes = await pdfDoc.save();
