@@ -29,13 +29,14 @@ export const generateRatPDF = async (formData: RatFormData) => {
     firstPage.drawText(text, { x, y: toPdfY(yFromTop), size, font });
   };
   
-  drawText(formData.codigoLoja, 265, 138, 10);
-  drawText(formData.pdv, 545, 138, 10);
-  drawText(formData.fsa, 685, 138, 10);
-  drawText(formData.endereco, 80, 164, 9);
-  drawText(formData.cidade, 545, 164, 9);
-  drawText(formData.uf, 775, 164, 9);
-  drawText(formData.nomeSolicitante, 55, 190, 9);
+  // Cabeçalho - Identificação
+  drawText(formData.codigoLoja, 315, 104, 9);
+  drawText(formData.pdv, 450, 104, 9);
+  drawText(formData.fsa, 550, 104, 9);
+  drawText(formData.endereco, 225, 131, 8);
+  drawText(formData.cidade, 505, 131, 8);
+  drawText(formData.uf, 610, 131, 8);
+  drawText(formData.nomeSolicitante, 325, 157, 8);
   
   equipamentoOptions.forEach((option) => {
     if (formData.equipamentos.includes(option.value)) {
@@ -45,15 +46,15 @@ export const generateRatPDF = async (formData: RatFormData) => {
 
   // Dados do Equipamento - Coluna direita
   // Patrimônio
-  drawText(formData.patrimonioNumeroSerie, 770, 234, 8);
+  drawText(formData.patrimonioNumeroSerie, 555, 211, 8);
   // Número Série ATIVO
-  drawText(formData.patrimonioNumeroSerie, 470, 246, 8);
+  drawText(formData.patrimonioNumeroSerie, 470, 211, 8);
   // Equip. com defeito
-  drawText(formData.equipComDefeito, 470, 258, 8);
+  drawText(formData.equipComDefeito, 390, 223, 8);
   // Marca
-  drawText(formData.marca, 455, 270, 8);
+  drawText(formData.marca, 355, 237, 8);
   // Modelo
-  drawText(formData.modelo, 635, 270, 8);
+  drawText(formData.modelo, 475, 237, 8);
   
   const origemSelecionada = origemEquipamentoOptions.find(
     (option) => option.value === formData.origemEquipamento
@@ -68,10 +69,10 @@ export const generateRatPDF = async (formData: RatFormData) => {
   
   // Dados da troca
   if (formData.numeroSerieTroca) {
-    drawText(formData.numeroSerieTroca, 470, 318, 8);
-    drawText(formData.equipNovoRecond || "", 470, 330, 8);
-    drawText(formData.marcaTroca, 455, 342, 8);
-    drawText(formData.modeloTroca, 635, 342, 8);
+    drawText(formData.numeroSerieTroca, 490, 281, 8);
+    drawText(formData.equipNovoRecond || "", 385, 293, 8);
+    drawText(formData.marcaTroca, 355, 305, 8);
+    drawText(formData.modeloTroca, 475, 305, 8);
   }
   
   // PEÇAS/CABOS - Checkboxes em 2 colunas
@@ -90,9 +91,9 @@ export const generateRatPDF = async (formData: RatFormData) => {
   
   // Mau uso checkboxes
   if (formData.mauUso === "sim") {
-    drawCheckboxMark(695, 390);
+    drawCheckboxMark(548, 341);
   } else if (formData.mauUso === "nao") {
-    drawCheckboxMark(740, 390);
+    drawCheckboxMark(598, 341);
   }
 
   const drawMultilineText = (
@@ -133,26 +134,35 @@ export const generateRatPDF = async (formData: RatFormData) => {
   };
 
   // Observações peças - campo de texto
-  drawMultilineText(formData.observacoesPecas, 620, 408, 150, 8, {
+  drawMultilineText(formData.observacoesPecas, 530, 415, 200, 3, {
     fontSize: 7,
     lineHeight: 9,
   });
 
   // Defeito/Problema
-  drawMultilineText(formData.defeitoProblema, 55, 582, 760, 2);
+  drawMultilineText(formData.defeitoProblema, 112, 505, 520, 2, {
+    fontSize: 8,
+    lineHeight: 10,
+  });
 
   // Diagnóstico/Testes
-  drawMultilineText(formData.diagnosticoTestes, 55, 622, 760, 5);
+  drawMultilineText(formData.diagnosticoTestes, 50, 575, 580, 4, {
+    fontSize: 8,
+    lineHeight: 11,
+  });
 
   // Solução
-  drawMultilineText(formData.solucao, 55, 690, 760, 5);
+  drawMultilineText(formData.solucao, 50, 695, 580, 2, {
+    fontSize: 8,
+    lineHeight: 10,
+  });
   
   // Problema resolvido - checkboxes
   if (formData.problemaResolvido === "sim") {
-    drawCheckboxMark(125, 738);
+    drawCheckboxMark(142, 713);
   } else if (formData.problemaResolvido === "nao") {
-    drawCheckboxMark(155, 738);
-    drawMultilineText(formData.motivoNaoResolvido, 280, 738, 200, 2, {
+    drawCheckboxMark(167, 713);
+    drawMultilineText(formData.motivoNaoResolvido, 275, 713, 180, 1, {
       fontSize: 7,
       lineHeight: 9,
     });
@@ -160,27 +170,27 @@ export const generateRatPDF = async (formData: RatFormData) => {
 
   // Haverá retorno - checkboxes
   if (formData.haveraRetorno === "sim") {
-    drawCheckboxMark(730, 738);
+    drawCheckboxMark(580, 713);
   } else if (formData.haveraRetorno === "nao") {
-    drawCheckboxMark(760, 738);
+    drawCheckboxMark(608, 713);
   }
 
   // Horários e Data
-  drawText(formData.horaInicio, 95, 755, 9);
-  drawText(formData.horaTermino, 265, 755, 9);
+  drawText(formData.horaInicio, 115, 742, 8);
+  drawText(formData.horaTermino, 255, 742, 8);
 
   const dataFormatada = formData.data ? new Date(formData.data).toLocaleDateString("pt-BR") : "";
-  drawText(dataFormatada, 685, 755, 9);
+  drawText(dataFormatada, 545, 742, 8);
   
   // CLIENTE - Dados na coluna esquerda
-  drawText(formData.clienteNome, 120, 785, 9);
-  drawText(formData.clienteRgMatricula, 145, 802, 9);
-  drawText(formData.clienteTelefone, 95, 820, 9);
+  drawText(formData.clienteNome, 235, 764, 8);
+  drawText(formData.clienteRgMatricula, 235, 780, 8);
+  drawText(formData.clienteTelefone, 235, 796, 8);
 
   // PRESTADOR - Dados na coluna direita
-  drawText(formData.prestadorNome, 565, 785, 9);
-  drawText(formData.prestadorRgMatricula, 565, 802, 9);
-  drawText(formData.prestadorTelefone, 565, 820, 9);
+  drawText(formData.prestadorNome, 500, 764, 8);
+  drawText(formData.prestadorRgMatricula, 500, 780, 8);
+  drawText(formData.prestadorTelefone, 500, 796, 8);
   
   // Salvar e abrir PDF
   const pdfBytes = await pdfDoc.save();
