@@ -66,15 +66,10 @@ export const generateRatPDF = async (formData: RatFormData) => {
     setTextSafe(form, "Nomedosolicitante", formData.nomeSolicitante);
 
     // EQUIPAMENTOS ENVOLVIDOS - Checkboxes
-    if (formData.equipamentos.includes("pdv-teclado")) setCheckSafe(form, "01-PDV-Teclado", true);
-    if (formData.equipamentos.includes("pdv-monitor")) setCheckSafe(form, "02-PDV-Monitor", true);
-    if (formData.equipamentos.includes("pdv-impressora")) setCheckSafe(form, "03-PDV-Impressora", true);
-    if (formData.equipamentos.includes("pdv-gaveta")) setCheckSafe(form, "04-PDV-Gaveta", true);
-    if (formData.equipamentos.includes("pdv-nobreak")) setCheckSafe(form, "05-PDV-Nobreak", true);
-    if (formData.equipamentos.includes("desktop-gerente")) setCheckSafe(form, "07-Desktop-Gerente", true);
-    if (formData.equipamentos.includes("desktop-monitor")) setCheckSafe(form, "08-Desktop-Monitor", true);
-    if (formData.equipamentos.includes("desktop-teclado")) setCheckSafe(form, "09-Desktop-Teclado", true);
-    if (formData.equipamentos.includes("desktop-mouse")) setCheckSafe(form, "10-Desktop-Mouse", true);
+    formData.equipamentos.forEach(equip => {
+      // Tenta marcar o checkbox correspondente
+      setCheckSafe(form, equip, true);
+    });
 
     // DADOS DO EQUIPAMENTO
     setTextSafe(form, "Serial", formData.patrimonioNumeroSerie);
@@ -95,9 +90,10 @@ export const generateRatPDF = async (formData: RatFormData) => {
 
     // DADOS DA TROCA
     if (formData.numeroSerieTroca) {
-      setTextSafe(form, "SerialNovo", formData.numeroSerieTroca);
-      setTextSafe(form, "MarcaNova", formData.marcaTroca);
-      setTextSafe(form, "ModeloNovo", formData.modeloTroca);
+      setTextSafe(form, "Número Série Troca", formData.numeroSerieTroca);
+      setTextSafe(form, "Equip. Novo/Recond.", formData.equipNovoRecond);
+      setTextSafe(form, "Marca2", formData.marcaTroca);
+      setTextSafe(form, "Modelo2", formData.modeloTroca);
     }
 
     // PEÇAS/CABOS
