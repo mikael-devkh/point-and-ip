@@ -1,200 +1,185 @@
-import { PDFDocument, StandardFonts } from "pdf-lib";
+import { PDFDocument } from "pdf-lib";
 import ratTemplateUrl from "@/assets/rat-template.pdf?url";
 import { RatFormData } from "@/types/rat";
-import {
-  equipamentoOptions,
-  origemEquipamentoOptions,
-  pecasCabosOptions,
-  pecasImpressoraOptions,
-} from "@/data/ratOptions";
+
+const log = (...args: any[]) => console.debug("[RAT]", ...args);
+
+// Helper para setar texto em campos do formulário
+function setTextSafe(form: any, fieldName: string, value?: string) {
+  try {
+    if (value === undefined || value === null) return;
+    const v = String(value);
+    if (!v) return;
+    form.getTextField(fieldName).setText(v);
+  } catch {
+    try { 
+      form.getDropdown(fieldName).select(String(value)); 
+    } catch {}
+  }
+}
+
+// Helper para setar checkboxes
+function setCheckSafe(form: any, fieldName: string, checked: boolean) {
+  try { 
+    const checkbox = form.getCheckBox(fieldName); 
+    checked ? checkbox.check() : checkbox.uncheck(); 
+    return; 
+  } catch {}
+  try { 
+    form.getRadioGroup(fieldName).select(checked ? "on" : "off"); 
+    return; 
+  } catch {}
+  try { 
+    form.getTextField(fieldName).setText(checked ? "X" : ""); 
+  } catch {}
+}
+
+// Helper para dividir texto em linhas
+const splitLines = (text?: string, maxLines = 4) =>
+  (text ?? "").split(/\r?\n/).map(x => x.trim()).filter(Boolean).slice(0, maxLines);
+
+const normalizeHour = (hour?: string) => hour ? hour.replace(/\s+/g, "") : hour;
 
 export const generateRatPDF = async (formData: RatFormData) => {
-  const existingPdfBytes = await fetch(ratTemplateUrl).then((res) => res.arrayBuffer());
-  
-  const pdfDoc = await PDFDocument.load(existingPdfBytes);
-  const pages = pdfDoc.getPages();
-  const firstPage = pages[0];
-  const { height } = firstPage.getSize();
-  
-  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-  const smallFont = 7;
-
-  const toPdfY = (yFromTop: number) => height - yFromTop;
-  const drawCheckboxMark = (x: number, yFromTop: number, size = 8) => {
-    firstPage.drawText("X", { x, y: toPdfY(yFromTop), size, font: fontBold });
-  };
-  const drawText = (text: string, x: number, yFromTop: number, size = 9) => {
-    if (!text) return;
-    firstPage.drawText(text, { x, y: toPdfY(yFromTop), size, font });
-  };
-  
-  // Cabeçalho - Identificação
-  drawText(formData.codigoLoja, 315, 104, 9);
-  drawText(formData.pdv, 450, 104, 9);
-  drawText(formData.fsa, 550, 104, 9);
-  drawText(formData.endereco, 225, 131, 8);
-  drawText(formData.cidade, 505, 131, 8);
-  drawText(formData.uf, 610, 131, 8);
-  drawText(formData.nomeSolicitante, 325, 157, 8);
-  
-  equipamentoOptions.forEach((option) => {
-    if (formData.equipamentos.includes(option.value)) {
-      drawCheckboxMark(option.pdfPosition.x, option.pdfPosition.yFromTop);
-    }
-  });
-
-  // Dados do Equipamento - Coluna direita
-  // Patrimônio
-  drawText(formData.patrimonioNumeroSerie, 555, 211, 8);
-  // Número Série ATIVO
-  drawText(formData.patrimonioNumeroSerie, 470, 211, 8);
-  // Equip. com defeito
-  drawText(formData.equipComDefeito, 390, 223, 8);
-  // Marca
-  drawText(formData.marca, 355, 237, 8);
-  // Modelo
-  drawText(formData.modelo, 475, 237, 8);
-  
-  const origemSelecionada = origemEquipamentoOptions.find(
-    (option) => option.value === formData.origemEquipamento
-  );
-  if (origemSelecionada) {
-    drawCheckboxMark(
-      origemSelecionada.pdfPosition.x,
-      origemSelecionada.pdfPosition.yFromTop,
-      7
-    );
-  }
-  
-  // Dados da troca
-  if (formData.numeroSerieTroca) {
-    drawText(formData.numeroSerieTroca, 490, 281, 8);
-    drawText(formData.equipNovoRecond || "", 385, 293, 8);
-    drawText(formData.marcaTroca, 355, 305, 8);
-    drawText(formData.modeloTroca, 475, 305, 8);
-  }
-  
-  // PEÇAS/CABOS - Checkboxes em 2 colunas
-  pecasCabosOptions.forEach((option) => {
-    if (formData.pecasCabos.includes(option.value)) {
-      drawCheckboxMark(option.pdfPosition.x, option.pdfPosition.yFromTop);
-    }
-  });
-
-  // PEÇAS IMPRESSORA - Checkboxes coluna direita
-  pecasImpressoraOptions.forEach((option) => {
-    if (formData.pecasImpressora.includes(option.value)) {
-      drawCheckboxMark(option.pdfPosition.x, option.pdfPosition.yFromTop);
-    }
-  });
-  
-  // Mau uso checkboxes
-  if (formData.mauUso === "sim") {
-    drawCheckboxMark(548, 341);
-  } else if (formData.mauUso === "nao") {
-    drawCheckboxMark(598, 341);
-  }
-
-  const drawMultilineText = (
-    text: string,
-    x: number,
-    startYFromTop: number,
-    maxWidth: number,
-    maxLines: number,
-    options?: { fontSize?: number; lineHeight?: number }
-  ) => {
-    if (!text) return;
-
-    const fontSize = options?.fontSize ?? smallFont;
-    const lineHeight = options?.lineHeight ?? fontSize + 2;
-    const words = text.split(/\s+/);
-    let line = "";
-    let lineCount = 0;
-    let currentYFromTop = startYFromTop;
-
-    for (const word of words) {
-      const testLine = `${line}${word} `;
-      const textWidth = font.widthOfTextAtSize(testLine, fontSize);
-
-      if (textWidth > maxWidth && line.trim()) {
-        if (lineCount >= maxLines) break;
-        drawText(line.trim(), x, currentYFromTop, fontSize);
-        line = `${word} `;
-        currentYFromTop += lineHeight;
-        lineCount++;
-      } else {
-        line = testLine;
-      }
+  try {
+    log("Carregando template RAT...");
+    const pdfBytes = await fetch(ratTemplateUrl).then((res) => res.arrayBuffer());
+    
+    const pdfDoc = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
+    const form = pdfDoc.getForm();
+    
+    // Log dos campos disponíveis para debug
+    try {
+      const fields = form.getFields().map((f: any) => f.getName());
+      log("Campos disponíveis no PDF:", fields);
+    } catch (e) {
+      log("Não foi possível listar campos:", e);
     }
 
-    if (line.trim() && lineCount < maxLines) {
-      drawText(line.trim(), x, currentYFromTop, fontSize);
+    // IDENTIFICAÇÃO
+    setTextSafe(form, "CódigodaLoja", formData.codigoLoja);
+    setTextSafe(form, "PDV", formData.pdv);
+    setTextSafe(form, "FSA", formData.fsa);
+    setTextSafe(form, "Endereço", formData.endereco);
+    setTextSafe(form, "Cidade", formData.cidade);
+    setTextSafe(form, "UF", formData.uf);
+    setTextSafe(form, "Nomedosolicitante", formData.nomeSolicitante);
+
+    // EQUIPAMENTOS ENVOLVIDOS - Checkboxes
+    if (formData.equipamentos.includes("pdv-teclado")) setCheckSafe(form, "01-PDV-Teclado", true);
+    if (formData.equipamentos.includes("pdv-monitor")) setCheckSafe(form, "02-PDV-Monitor", true);
+    if (formData.equipamentos.includes("pdv-impressora")) setCheckSafe(form, "03-PDV-Impressora", true);
+    if (formData.equipamentos.includes("pdv-gaveta")) setCheckSafe(form, "04-PDV-Gaveta", true);
+    if (formData.equipamentos.includes("pdv-nobreak")) setCheckSafe(form, "05-PDV-Nobreak", true);
+    if (formData.equipamentos.includes("desktop-gerente")) setCheckSafe(form, "07-Desktop-Gerente", true);
+    if (formData.equipamentos.includes("desktop-monitor")) setCheckSafe(form, "08-Desktop-Monitor", true);
+    if (formData.equipamentos.includes("desktop-teclado")) setCheckSafe(form, "09-Desktop-Teclado", true);
+    if (formData.equipamentos.includes("desktop-mouse")) setCheckSafe(form, "10-Desktop-Mouse", true);
+
+    // DADOS DO EQUIPAMENTO
+    setTextSafe(form, "Serial", formData.patrimonioNumeroSerie);
+    setTextSafe(form, "Patrimonio", formData.patrimonioNumeroSerie);
+    setTextSafe(form, "Marca", formData.marca);
+    setTextSafe(form, "Modelo", formData.modelo);
+
+    // ORIGEM DO EQUIPAMENTO
+    if (formData.origemEquipamento === "primeiraDelfi") {
+      setCheckSafe(form, "E1-Primeira-Delfi", true);
+    } else if (formData.origemEquipamento === "provaParaleloPróprioDelfi") {
+      setCheckSafe(form, "E2-Prova-Paralelo-Próp-Delfi", true);
+    } else if (formData.origemEquipamento === "equipamentoProprioDelfi") {
+      setCheckSafe(form, "E3-Equipamento-Próprio-Delfi", true);
+    } else if (formData.origemEquipamento === "paraleloPróprioDelfi") {
+      setCheckSafe(form, "E4-Paralelo-Próp-Delfi", true);
     }
-  };
 
-  // Observações peças - campo de texto
-  drawMultilineText(formData.observacoesPecas, 530, 415, 200, 3, {
-    fontSize: 7,
-    lineHeight: 9,
-  });
+    // DADOS DA TROCA
+    if (formData.numeroSerieTroca) {
+      setTextSafe(form, "SerialNovo", formData.numeroSerieTroca);
+      setTextSafe(form, "MarcaNova", formData.marcaTroca);
+      setTextSafe(form, "ModeloNovo", formData.modeloTroca);
+    }
 
-  // Defeito/Problema
-  drawMultilineText(formData.defeitoProblema, 112, 505, 520, 2, {
-    fontSize: 8,
-    lineHeight: 10,
-  });
+    // PEÇAS/CABOS
+    const pecasCabosLines = splitLines(formData.pecasCabos?.join(", ") || "", 3);
+    setTextSafe(form, "Row1", pecasCabosLines[0]);
+    setTextSafe(form, "Row2", pecasCabosLines[1]);
+    setTextSafe(form, "Row3", pecasCabosLines[2]);
 
-  // Diagnóstico/Testes
-  drawMultilineText(formData.diagnosticoTestes, 50, 575, 580, 4, {
-    fontSize: 8,
-    lineHeight: 11,
-  });
+    // PEÇAS IMPRESSORA
+    const pecasImpressoraLines = splitLines(formData.pecasImpressora?.join(", ") || "", 3);
+    setTextSafe(form, "RowImp1", pecasImpressoraLines[0]);
+    setTextSafe(form, "RowImp2", pecasImpressoraLines[1]);
+    setTextSafe(form, "RowImp3", pecasImpressoraLines[2]);
 
-  // Solução
-  drawMultilineText(formData.solucao, 50, 695, 580, 2, {
-    fontSize: 8,
-    lineHeight: 10,
-  });
-  
-  // Problema resolvido - checkboxes
-  if (formData.problemaResolvido === "sim") {
-    drawCheckboxMark(142, 713);
-  } else if (formData.problemaResolvido === "nao") {
-    drawCheckboxMark(167, 713);
-    drawMultilineText(formData.motivoNaoResolvido, 275, 713, 180, 1, {
-      fontSize: 7,
-      lineHeight: 9,
-    });
+    // MAU USO
+    setCheckSafe(form, "Sim", formData.mauUso === "sim");
+    setCheckSafe(form, "Não", formData.mauUso === "nao");
+
+    // OBSERVAÇÕES PEÇAS
+    setTextSafe(form, "Observações", formData.observacoesPecas);
+
+    // DEFEITO/PROBLEMA
+    const defeitoLines = splitLines(formData.defeitoProblema, 2);
+    setTextSafe(form, "DefeitoProblemaRow1", defeitoLines[0]);
+    setTextSafe(form, "DefeitoProblemaRow2", defeitoLines[1]);
+
+    // DIAGNÓSTICO/TESTES
+    const diagnosticoLines = splitLines(formData.diagnosticoTestes, 4);
+    setTextSafe(form, "DiagnósticoTestesrealizadosRow1", diagnosticoLines[0]);
+    setTextSafe(form, "DiagnósticoTestesrealizadosRow2", diagnosticoLines[1]);
+    setTextSafe(form, "DiagnósticoTestesrealizadosRow3", diagnosticoLines[2]);
+    setTextSafe(form, "DiagnósticoTestesrealizadosRow4", diagnosticoLines[3]);
+
+    // SOLUÇÃO
+    const solucaoLines = splitLines(formData.solucao, 1);
+    setTextSafe(form, "SoluçãoRow1", solucaoLines[0]);
+
+    // PROBLEMA RESOLVIDO
+    setCheckSafe(form, "SimProblemaresolvido", formData.problemaResolvido === "sim");
+    setCheckSafe(form, "NãoProblemaresolvido", formData.problemaResolvido === "nao");
+    if (formData.problemaResolvido === "nao") {
+      setTextSafe(form, "Motivo", formData.motivoNaoResolvido);
+    }
+
+    // HAVERÁ RETORNO
+    setCheckSafe(form, "SimHaveráretorno", formData.haveraRetorno === "sim");
+    setCheckSafe(form, "NãoHaveráretorno", formData.haveraRetorno === "nao");
+
+    // HORÁRIOS E DATA
+    setTextSafe(form, "Horainício", normalizeHour(formData.horaInicio));
+    setTextSafe(form, "Horatérmino", normalizeHour(formData.horaTermino));
+    
+    const dataFormatada = formData.data ? new Date(formData.data).toLocaleDateString("pt-BR") : "";
+    setTextSafe(form, "DATA", dataFormatada);
+
+    // CLIENTE
+    setTextSafe(form, "NOMELEGÍVEL", formData.clienteNome);
+    setTextSafe(form, "RGOUMATRÍCULA", formData.clienteRgMatricula);
+    setTextSafe(form, "TELEFONE", formData.clienteTelefone);
+
+    // PRESTADOR
+    setTextSafe(form, "NOMELEGÍVEL_2", formData.prestadorNome);
+    setTextSafe(form, "MATRÍCULA", formData.prestadorRgMatricula);
+    setTextSafe(form, "TELEFONE_2", formData.prestadorTelefone);
+
+    // Achatar o formulário para tornar os campos não-editáveis
+    try {
+      form.flatten();
+    } catch (e) {
+      log("Não foi possível achatar o formulário:", e);
+    }
+
+    // Salvar e abrir PDF
+    const bytes = await pdfDoc.save();
+    const blob = new Blob([new Uint8Array(Array.from(bytes)).buffer], { type: "application/pdf" });
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank");
+    
+    log("PDF gerado com sucesso!");
+    return { url };
+  } catch (error) {
+    console.error("[RAT] Erro ao gerar PDF:", error);
+    throw error;
   }
-
-  // Haverá retorno - checkboxes
-  if (formData.haveraRetorno === "sim") {
-    drawCheckboxMark(580, 713);
-  } else if (formData.haveraRetorno === "nao") {
-    drawCheckboxMark(608, 713);
-  }
-
-  // Horários e Data
-  drawText(formData.horaInicio, 115, 742, 8);
-  drawText(formData.horaTermino, 255, 742, 8);
-
-  const dataFormatada = formData.data ? new Date(formData.data).toLocaleDateString("pt-BR") : "";
-  drawText(dataFormatada, 545, 742, 8);
-  
-  // CLIENTE - Dados na coluna esquerda
-  drawText(formData.clienteNome, 235, 764, 8);
-  drawText(formData.clienteRgMatricula, 235, 780, 8);
-  drawText(formData.clienteTelefone, 235, 796, 8);
-
-  // PRESTADOR - Dados na coluna direita
-  drawText(formData.prestadorNome, 500, 764, 8);
-  drawText(formData.prestadorRgMatricula, 500, 780, 8);
-  drawText(formData.prestadorTelefone, 500, 796, 8);
-  
-  // Salvar e abrir PDF
-  const pdfBytes = await pdfDoc.save();
-  const blob = new Blob([new Uint8Array(pdfBytes)], { type: "application/pdf" });
-  const url = URL.createObjectURL(blob);
-  window.open(url, "_blank");
 };
