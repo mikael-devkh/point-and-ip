@@ -90,23 +90,25 @@ export const generateRatPDF = async (formData: RatFormData) => {
 
     // DADOS DA TROCA
     if (formData.numeroSerieTroca) {
-      setTextSafe(form, "Número Série Troca", formData.numeroSerieTroca);
-      setTextSafe(form, "Equip. Novo/Recond.", formData.equipNovoRecond);
-      setTextSafe(form, "Marca2", formData.marcaTroca);
-      setTextSafe(form, "Modelo2", formData.modeloTroca);
+      setTextSafe(form, "Número Série Troca Equip. NovoRecond", formData.numeroSerieTroca);
+      setTextSafe(form, "Marca_2", formData.marcaTroca);
+      setTextSafe(form, "Modelo_2", formData.modeloTroca);
+      
+      // Origem do equipamento de troca
+      if (formData.equipNovoRecond) {
+        setTextSafe(form, "E1Novo Delfia  E2Novo Parceiro  E3Recond Delfia  E4EquipAmericanas E5PeçaDelfia  E6PeçaParceiro  E7PeçaAmericanas  E8Garantia Schalter E9Garantia Delfia  E10Garantia Parceiro", formData.equipNovoRecond);
+      }
     }
 
-    // PEÇAS/CABOS
-    const pecasCabosLines = splitLines(formData.pecasCabos?.join(", ") || "", 3);
-    setTextSafe(form, "Row1", pecasCabosLines[0]);
-    setTextSafe(form, "Row2", pecasCabosLines[1]);
-    setTextSafe(form, "Row3", pecasCabosLines[2]);
+    // PEÇAS/CABOS - Checkboxes
+    formData.pecasCabos?.forEach(peca => {
+      setCheckSafe(form, peca, true);
+    });
 
-    // PEÇAS IMPRESSORA
-    const pecasImpressoraLines = splitLines(formData.pecasImpressora?.join(", ") || "", 3);
-    setTextSafe(form, "RowImp1", pecasImpressoraLines[0]);
-    setTextSafe(form, "RowImp2", pecasImpressoraLines[1]);
-    setTextSafe(form, "RowImp3", pecasImpressoraLines[2]);
+    // PEÇAS IMPRESSORA - Checkboxes
+    formData.pecasImpressora?.forEach(peca => {
+      setCheckSafe(form, peca, true);
+    });
 
     // MAU USO
     setCheckSafe(form, "Sim", formData.mauUso === "sim");
