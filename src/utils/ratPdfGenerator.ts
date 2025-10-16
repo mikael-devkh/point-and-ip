@@ -1,6 +1,12 @@
-import { PDFDocument } from "pdf-lib";
+import { PDFDocument, PDFPage, PDFFont, StandardFonts, rgb } from "pdf-lib";
 import ratTemplateUrl from "@/assets/rat-template.pdf?url";
 import { RatFormData } from "@/types/rat";
+import {
+  equipamentoOptions,
+  origemEquipamentoOptions,
+  pecasCabosOptions,
+  pecasImpressoraOptions,
+} from "@/data/ratOptions";
 
 const log = (...args: any[]) => console.debug("[RAT]", ...args);
 
@@ -12,42 +18,50 @@ function setTextSafe(form: any, fieldName: string, value?: string) {
     if (!v) return;
     form.getTextField(fieldName).setText(v);
   } catch {
-    try { 
-      form.getDropdown(fieldName).select(String(value)); 
+    try {
+      form.getDropdown(fieldName).select(String(value));
     } catch {}
   }
 }
 
-// Helper para setar checkboxes
-function setCheckSafe(form: any, fieldName: string, checked: boolean) {
-  try { 
-    const checkbox = form.getCheckBox(fieldName); 
-    checked ? checkbox.check() : checkbox.uncheck(); 
-    return; 
-  } catch {}
-  try { 
-    form.getRadioGroup(fieldName).select(checked ? "on" : "off"); 
-    return; 
-  } catch {}
-  try { 
-    form.getTextField(fieldName).setText(checked ? "X" : ""); 
-  } catch {}
-}
-
 // Helper para dividir texto em linhas
 const splitLines = (text?: string, maxLines = 4) =>
-  (text ?? "").split(/\r?\n/).map(x => x.trim()).filter(Boolean).slice(0, maxLines);
+  (text ?? "")
+    .split(/\r?\n/)
+    .map((x) => x.trim())
+    .filter(Boolean)
+    .slice(0, maxLines);
 
-const normalizeHour = (hour?: string) => hour ? hour.replace(/\s+/g, "") : hour;
+const normalizeHour = (hour?: string) => (hour ? hour.replace(/\s+/g, "") : hour);
+
+const drawMark = (
+  page: PDFPage,
+  font: PDFFont,
+  pageHeight: number,
+  x: number,
+  yFromTop: number,
+  size = 12,
+) => {
+  page.drawText("X", {
+    x,
+    y: pageHeight - yFromTop,
+    size,
+    font,
+    color: rgb(0, 0, 0),
+  });
+};
 
 export const generateRatPDF = async (formData: RatFormData) => {
   try {
     log("Carregando template RAT...");
     const pdfBytes = await fetch(ratTemplateUrl).then((res) => res.arrayBuffer());
-    
+
     const pdfDoc = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
     const form = pdfDoc.getForm();
-    
+    const page = pdfDoc.getPages()[0];
+    const pageHeight = page.getHeight();
+    const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
     // Log dos campos disponíveis para debug
     try {
       const fields = form.getFields().map((f: any) => f.getName());
@@ -66,9 +80,10 @@ export const generateRatPDF = async (formData: RatFormData) => {
     setTextSafe(form, "Nomedosolicitante", formData.nomeSolicitante);
 
     // EQUIPAMENTOS ENVOLVIDOS - Checkboxes
-    formData.equipamentos.forEach(equip => {
-      // Tenta marcar o checkbox correspondente
-      setCheckSafe(form, equip, true);
+    formData.equipamentos.forEach((equip) => {
+      const option = equipamentoOptions.find((item) => item.value === equip);
+      if (!option) return;
+      drawMark(page, font, pageHeight, option.pdfPosition.x, option.pdfPosition.yFromTop);
     });
 
     // DADOS DO EQUIPAMENTO
@@ -77,42 +92,47 @@ export const generateRatPDF = async (formData: RatFormData) => {
     setTextSafe(form, "Marca", formData.marca);
     setTextSafe(form, "Modelo", formData.modelo);
 
+    const equipDefeitoLines = splitLines(formData.equipComDefeito, 3);
+    setTextSafe(form, "Row1", equipDefeitoLines[0]);
+    setTextSafe(form, "Row2", equipDefeitoLines[1]);
+    setTextSafe(form, "Row3", equipDefeitoLines[2]);
+
     // ORIGEM DO EQUIPAMENTO
-    if (formData.origemEquipamento === "primeiraDelfi") {
-      setCheckSafe(form, "E1-Primeira-Delfi", true);
-    } else if (formData.origemEquipamento === "provaParaleloPróprioDelfi") {
-      setCheckSafe(form, "E2-Prova-Paralelo-Próp-Delfi", true);
-    } else if (formData.origemEquipamento === "equipamentoProprioDelfi") {
-      setCheckSafe(form, "E3-Equipamento-Próprio-Delfi", true);
-    } else if (formData.origemEquipamento === "paraleloPróprioDelfi") {
-      setCheckSafe(form, "E4-Paralelo-Próp-Delfi", true);
+    const origemOption = origemEquipamentoOptions.find(
+      (option) => option.value === formData.origemEquipamento,
+    );
+    if (origemOption) {
+      drawMark(page, font, pageHeight, origemOption.pdfPosition.x, origemOption.pdfPosition.yFromTop);
     }
 
     // DADOS DA TROCA
     if (formData.numeroSerieTroca) {
-      setTextSafe(form, "Número Série Troca Equip. NovoRecond", formData.numeroSerieTroca);
-      setTextSafe(form, "Marca_2", formData.marcaTroca);
-      setTextSafe(form, "Modelo_2", formData.modeloTroca);
-      
-      // Origem do equipamento de troca
-      if (formData.equipNovoRecond) {
-        setTextSafe(form, "E1Novo Delfia  E2Novo Parceiro  E3Recond Delfia  E4EquipAmericanas E5PeçaDelfia  E6PeçaParceiro  E7PeçaAmericanas  E8Garantia Schalter E9Garantia Delfia  E10Garantia Parceiro", formData.equipNovoRecond);
-      }
+      setTextSafe(form, "SerialNovo", formData.numeroSerieTroca);
     }
+    setTextSafe(form, "MarcaNovo", formData.marcaTroca);
+    setTextSafe(form, "ModeloNovo", formData.modeloTroca);
+    setTextSafe(form, "Origem", formData.equipNovoRecond);
 
     // PEÇAS/CABOS - Checkboxes
-    formData.pecasCabos?.forEach(peca => {
-      setCheckSafe(form, peca, true);
+    formData.pecasCabos?.forEach((peca) => {
+      const option = pecasCabosOptions.find((item) => item.value === peca);
+      if (!option) return;
+      drawMark(page, font, pageHeight, option.pdfPosition.x, option.pdfPosition.yFromTop);
     });
 
     // PEÇAS IMPRESSORA - Checkboxes
-    formData.pecasImpressora?.forEach(peca => {
-      setCheckSafe(form, peca, true);
+    formData.pecasImpressora?.forEach((peca) => {
+      const option = pecasImpressoraOptions.find((item) => item.value === peca);
+      if (!option) return;
+      drawMark(page, font, pageHeight, option.pdfPosition.x, option.pdfPosition.yFromTop);
     });
 
     // MAU USO
-    setCheckSafe(form, "Sim", formData.mauUso === "sim");
-    setCheckSafe(form, "Não", formData.mauUso === "nao");
+    if (formData.mauUso === "sim") {
+      drawMark(page, font, pageHeight, 407, 522);
+    } else if (formData.mauUso === "nao") {
+      drawMark(page, font, pageHeight, 480, 522);
+    }
 
     // OBSERVAÇÕES PEÇAS
     setTextSafe(form, "Observações", formData.observacoesPecas);
@@ -134,15 +154,19 @@ export const generateRatPDF = async (formData: RatFormData) => {
     setTextSafe(form, "SoluçãoRow1", solucaoLines[0]);
 
     // PROBLEMA RESOLVIDO
-    setCheckSafe(form, "SimProblemaresolvido", formData.problemaResolvido === "sim");
-    setCheckSafe(form, "NãoProblemaresolvido", formData.problemaResolvido === "nao");
-    if (formData.problemaResolvido === "nao") {
+    if (formData.problemaResolvido === "sim") {
+      setTextSafe(form, "SimProblemaresolvido", "X");
+    } else if (formData.problemaResolvido === "nao") {
+      setTextSafe(form, "NãoProblemaresolvido", "X");
       setTextSafe(form, "Motivo", formData.motivoNaoResolvido);
     }
 
     // HAVERÁ RETORNO
-    setCheckSafe(form, "SimHaveráretorno", formData.haveraRetorno === "sim");
-    setCheckSafe(form, "NãoHaveráretorno", formData.haveraRetorno === "nao");
+    if (formData.haveraRetorno === "sim") {
+      setTextSafe(form, "SimHaveráretorno", "X");
+    } else if (formData.haveraRetorno === "nao") {
+      setTextSafe(form, "NãoHaveráretorno", "X");
+    }
 
     // HORÁRIOS E DATA
     setTextSafe(form, "Horainício", normalizeHour(formData.horaInicio));
