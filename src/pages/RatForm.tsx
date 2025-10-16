@@ -181,14 +181,6 @@ const RatForm = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="equipComDefeito">Equip. com defeito</Label>
-                <Input
-                  id="equipComDefeito"
-                  value={formData.equipComDefeito}
-                  onChange={(e) => setFormData({ ...formData, equipComDefeito: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
                 <Label htmlFor="marca">Marca</Label>
                 <Input
                   id="marca"
