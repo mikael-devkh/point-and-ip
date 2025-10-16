@@ -158,38 +158,11 @@ const RatForm = () => {
             </div>
           </section>
 
-          {/* Equipamentos Envolvidos */}
+          {/* Dados do Equipamento */}
           <section className="space-y-4">
-            <h2 className="text-xl font-semibold text-foreground">Equipamentos Envolvidos</h2>
+            <h2 className="text-xl font-semibold text-foreground">Dados do Equipamento</h2>
             <Separator />
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {equipamentoOptions.map((equip) => {
-                const checkboxId = buildCheckboxId("equip", equip.value);
-                return (
-                  <div key={equip.value} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={checkboxId}
-                      checked={formData.equipamentos.includes(equip.value)}
-                      onCheckedChange={(checked) =>
-                        setFormData({
-                          ...formData,
-                          equipamentos: toggleListValue(
-                            formData.equipamentos,
-                            equip.value,
-                            checked as boolean
-                          ),
-                        })
-                      }
-                    />
-                    <label htmlFor={checkboxId} className="text-sm cursor-pointer">
-                      {equip.label}
-                    </label>
-                  </div>
-                );
-              })}
-            </div>
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
               <div className="space-y-2">
                 <Label htmlFor="patrimonioNumeroSerie">Patrimônio/Número Série ATIVO</Label>
@@ -284,72 +257,6 @@ const RatForm = () => {
                   onChange={(e) => setFormData({ ...formData, modeloTroca: e.target.value })}
                 />
               </div>
-            </div>
-          </section>
-
-          {/* Peças/Cabos */}
-          <section className="space-y-4">
-            <h2 className="text-xl font-semibold text-foreground">Peças/Cabos</h2>
-            <Separator />
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {pecasCabosOptions.map((peca) => {
-                const checkboxId = buildCheckboxId("peca-cabo", peca.value);
-                return (
-                  <div key={peca.value} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={checkboxId}
-                      checked={formData.pecasCabos.includes(peca.value)}
-                      onCheckedChange={(checked) =>
-                        setFormData({
-                          ...formData,
-                          pecasCabos: toggleListValue(
-                            formData.pecasCabos,
-                            peca.value,
-                            checked as boolean
-                          ),
-                        })
-                      }
-                    />
-                    <label htmlFor={checkboxId} className="text-sm cursor-pointer">
-                      {peca.label}
-                    </label>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-
-          {/* Peças Impressora Térmica */}
-          <section className="space-y-4">
-            <h2 className="text-xl font-semibold text-foreground">Peças Imp. Térmica – Zebra/Printronix/Outras</h2>
-            <Separator />
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {pecasImpressoraOptions.map((peca) => {
-                const checkboxId = buildCheckboxId("peca-imp", peca.value);
-                return (
-                  <div key={peca.value} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={checkboxId}
-                      checked={formData.pecasImpressora.includes(peca.value)}
-                      onCheckedChange={(checked) =>
-                        setFormData({
-                          ...formData,
-                          pecasImpressora: toggleListValue(
-                            formData.pecasImpressora,
-                            peca.value,
-                            checked as boolean
-                          ),
-                        })
-                      }
-                    />
-                    <label htmlFor={checkboxId} className="text-sm cursor-pointer">
-                      {peca.label}
-                    </label>
-                  </div>
-                );
-              })}
             </div>
 
             <div className="space-y-2">

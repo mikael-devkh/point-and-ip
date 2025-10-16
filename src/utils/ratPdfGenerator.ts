@@ -79,12 +79,7 @@ export const generateRatPDF = async (formData: RatFormData) => {
     setTextSafe(form, "UF", formData.uf);
     setTextSafe(form, "Nomedosolicitante", formData.nomeSolicitante);
 
-    // EQUIPAMENTOS ENVOLVIDOS - Checkboxes
-    formData.equipamentos.forEach((equip) => {
-      const option = equipamentoOptions.find((item) => item.value === equip);
-      if (!option) return;
-      drawMark(page, font, pageHeight, option.pdfPosition.x, option.pdfPosition.yFromTop);
-    });
+    // EQUIPAMENTOS ENVOLVIDOS - Removido
 
     // DADOS DO EQUIPAMENTO
     setTextSafe(form, "Serial", formData.patrimonioNumeroSerie);
@@ -97,12 +92,14 @@ export const generateRatPDF = async (formData: RatFormData) => {
     setTextSafe(form, "Row2", equipDefeitoLines[1]);
     setTextSafe(form, "Row3", equipDefeitoLines[2]);
 
-    // ORIGEM DO EQUIPAMENTO
-    const origemOption = origemEquipamentoOptions.find(
-      (option) => option.value === formData.origemEquipamento,
-    );
-    if (origemOption) {
-      drawMark(page, font, pageHeight, origemOption.pdfPosition.x, origemOption.pdfPosition.yFromTop);
+    // ORIGEM DO EQUIPAMENTO - preencher apenas E1, E2, etc
+    if (formData.origemEquipamento) {
+      const origemOption = origemEquipamentoOptions.find(
+        (option) => option.value === formData.origemEquipamento,
+      );
+      if (origemOption) {
+        setTextSafe(form, "Origem", origemOption.value);
+      }
     }
 
     // DADOS DA TROCA
@@ -113,19 +110,9 @@ export const generateRatPDF = async (formData: RatFormData) => {
     setTextSafe(form, "ModeloNovo", formData.modeloTroca);
     setTextSafe(form, "Origem", formData.equipNovoRecond);
 
-    // PEÇAS/CABOS - Checkboxes
-    formData.pecasCabos?.forEach((peca) => {
-      const option = pecasCabosOptions.find((item) => item.value === peca);
-      if (!option) return;
-      drawMark(page, font, pageHeight, option.pdfPosition.x, option.pdfPosition.yFromTop);
-    });
-
-    // PEÇAS IMPRESSORA - Checkboxes
-    formData.pecasImpressora?.forEach((peca) => {
-      const option = pecasImpressoraOptions.find((item) => item.value === peca);
-      if (!option) return;
-      drawMark(page, font, pageHeight, option.pdfPosition.x, option.pdfPosition.yFromTop);
-    });
+    // PEÇAS/CABOS - Removido
+    
+    // PEÇAS IMPRESSORA - Removido
 
     // MAU USO
     if (formData.mauUso === "sim") {
