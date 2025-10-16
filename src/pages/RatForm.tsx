@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,8 +22,29 @@ import {
   sampleRatFormData,
 } from "@/data/ratOptions";
 
+const COMMON_PROBLEMS = [
+  "Não liga",
+  "Papel encravado",
+  "Ecrã azul",
+  "Não dá imagem",
+  "Lentidão excessiva",
+];
+
+const extractCommonProblems = (text: string) => {
+  const normalizedLines = text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  return COMMON_PROBLEMS.filter((problem) => normalizedLines.includes(`- ${problem}`));
+};
+
+const arraysEqual = (a: string[], b: string[]) =>
+  a.length === b.length && a.every((value, index) => value === b[index]);
+
 const RatForm = () => {
   const [formData, setFormData] = useState<RatFormData>(() => createEmptyRatFormData());
+  const [selectedProblems, setSelectedProblems] = useState<string[]>([]);
 
   const toggleListValue = (list: string[], value: string, checked: boolean) => {
     if (checked) {
@@ -36,14 +57,55 @@ const RatForm = () => {
     `${prefix}-${value}`.replace(/[^a-zA-Z0-9-_]/g, "-");
 
   const handleUseSampleData = () => {
-    setFormData(cloneRatFormData(sampleRatFormData));
+    const sampleData = cloneRatFormData(sampleRatFormData);
+    setFormData(sampleData);
+    setSelectedProblems(extractCommonProblems(sampleData.defeitoProblema));
     toast.success("Formulário preenchido com dados de teste.");
   };
 
   const handleResetForm = () => {
     setFormData(createEmptyRatFormData());
+    setSelectedProblems([]);
     toast.info("Formulário limpo.");
   };
+
+  const handleCommonProblemToggle = (problem: string, isChecked: boolean) => {
+    setSelectedProblems((prev) => {
+      if (isChecked) {
+        if (prev.includes(problem)) {
+          return prev;
+        }
+        const updated = [...prev, problem];
+        return COMMON_PROBLEMS.filter((item) => updated.includes(item));
+      }
+      const remaining = prev.filter((item) => item !== problem);
+      return COMMON_PROBLEMS.filter((item) => remaining.includes(item));
+    });
+
+    setFormData((prev) => {
+      const bullet = `- ${problem}`;
+      const lines = prev.defeitoProblema ? prev.defeitoProblema.split("\n") : [];
+
+      if (isChecked) {
+        if (lines.some((line) => line.trim() === bullet)) {
+          return prev;
+        }
+
+        const trimmed = prev.defeitoProblema.trimEnd();
+        const nextText = trimmed ? `${trimmed}\n${bullet}` : bullet;
+        return { ...prev, defeitoProblema: nextText };
+      }
+
+      const filtered = lines.filter((line) => line.trim() !== bullet);
+      const updated = filtered.join("\n").trim();
+      return { ...prev, defeitoProblema: updated };
+    });
+  };
+
+  useEffect(() => {
+    const derivedProblems = extractCommonProblems(formData.defeitoProblema);
+    setSelectedProblems((prev) => (arraysEqual(prev, derivedProblems) ? prev : derivedProblems));
+  }, [formData.defeitoProblema]);
 
   const handleGeneratePDF = async () => {
     try {
@@ -181,14 +243,6 @@ const RatForm = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="equipComDefeito">Equip. com defeito</Label>
-                <Input
-                  id="equipComDefeito"
-                  value={formData.equipComDefeito}
-                  onChange={(e) => setFormData({ ...formData, equipComDefeito: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
                 <Label htmlFor="marca">Marca</Label>
                 <Input
                   id="marca"
@@ -298,8 +352,31 @@ const RatForm = () => {
           <section className="space-y-4">
             <h2 className="text-xl font-semibold text-foreground">Considerações Gerais – Laudo Técnico</h2>
             <Separator />
-            
+
             <div className="space-y-4">
+              <div className="space-y-3">
+                <Label className="text-foreground font-medium">Problemas Comuns</Label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {COMMON_PROBLEMS.map((problem) => {
+                    const checkboxId = buildCheckboxId("problema-comum", problem);
+                    return (
+                      <div key={problem} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={checkboxId}
+                          checked={selectedProblems.includes(problem)}
+                          onCheckedChange={(checked) =>
+                            handleCommonProblemToggle(problem, checked === true)
+                          }
+                        />
+                        <Label htmlFor={checkboxId} className="text-sm leading-none cursor-pointer">
+                          {problem}
+                        </Label>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="defeitoProblema">Defeito/Problema</Label>
                 <Textarea
