@@ -32,6 +32,12 @@ const splitLines = (text?: string, maxLines = 4) =>
     .filter(Boolean)
     .slice(0, maxLines);
 
+const getOrigemCodigo = (value?: string) => {
+  if (!value) return "";
+  const [codigo] = value.split("-");
+  return codigo?.trim() ?? "";
+};
+
 const normalizeHour = (hour?: string) => (hour ? hour.replace(/\s+/g, "") : hour);
 
 const drawMark = (
@@ -87,18 +93,13 @@ export const generateRatPDF = async (formData: RatFormData) => {
     setTextSafe(form, "Marca", formData.marca);
     setTextSafe(form, "Modelo", formData.modelo);
 
-    const equipDefeitoLines = splitLines(formData.equipComDefeito, 3);
-    setTextSafe(form, "Row1", equipDefeitoLines[0]);
-    setTextSafe(form, "Row2", equipDefeitoLines[1]);
-    setTextSafe(form, "Row3", equipDefeitoLines[2]);
-
     // ORIGEM DO EQUIPAMENTO - preencher apenas E1, E2, etc
     if (formData.origemEquipamento) {
       const origemOption = origemEquipamentoOptions.find(
         (option) => option.value === formData.origemEquipamento,
       );
       if (origemOption) {
-        setTextSafe(form, "Origem", origemOption.value);
+        setTextSafe(form, "Origem", getOrigemCodigo(origemOption.value));
       }
     }
 
@@ -108,7 +109,9 @@ export const generateRatPDF = async (formData: RatFormData) => {
     }
     setTextSafe(form, "MarcaNovo", formData.marcaTroca);
     setTextSafe(form, "ModeloNovo", formData.modeloTroca);
-    setTextSafe(form, "Origem", formData.equipNovoRecond);
+    if (!formData.origemEquipamento) {
+      setTextSafe(form, "Origem", formData.equipNovoRecond);
+    }
 
     // PEÇAS/CABOS - Removido
     
