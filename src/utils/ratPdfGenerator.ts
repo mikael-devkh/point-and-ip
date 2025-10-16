@@ -82,8 +82,8 @@ export const generateRatPDF = async (formData: RatFormData) => {
     // EQUIPAMENTOS ENVOLVIDOS - Removido
 
     // DADOS DO EQUIPAMENTO
-    setTextSafe(form, "Serial", formData.patrimonioNumeroSerie);
-    setTextSafe(form, "Patrimonio", formData.patrimonioNumeroSerie);
+    setTextSafe(form, "Serial", formData.serial);
+    setTextSafe(form, "Patrimonio", formData.patrimonio);
     setTextSafe(form, "Marca", formData.marca);
     setTextSafe(form, "Modelo", formData.modelo);
 
@@ -122,7 +122,10 @@ export const generateRatPDF = async (formData: RatFormData) => {
     }
 
     // OBSERVAÇÕES PEÇAS
-    setTextSafe(form, "Observações", formData.observacoesPecas);
+    const observacoesLines = splitLines(formData.observacoesPecas, 3);
+    setTextSafe(form, "Row1", observacoesLines[0]);
+    setTextSafe(form, "Row2", observacoesLines[1]);
+    setTextSafe(form, "Row3", observacoesLines[2]);
 
     // DEFEITO/PROBLEMA
     const defeitoLines = splitLines(formData.defeitoProblema, 2);

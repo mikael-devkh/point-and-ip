@@ -165,11 +165,19 @@ const RatForm = () => {
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
               <div className="space-y-2">
-                <Label htmlFor="patrimonioNumeroSerie">Patrimônio/Número Série ATIVO</Label>
+                <Label htmlFor="serial">Número Série ATIVO</Label>
                 <Input
-                  id="patrimonioNumeroSerie"
-                  value={formData.patrimonioNumeroSerie}
-                  onChange={(e) => setFormData({ ...formData, patrimonioNumeroSerie: e.target.value })}
+                  id="serial"
+                  value={formData.serial}
+                  onChange={(e) => setFormData({ ...formData, serial: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="patrimonio">Patrimônio</Label>
+                <Input
+                  id="patrimonio"
+                  value={formData.patrimonio}
+                  onChange={(e) => setFormData({ ...formData, patrimonio: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
