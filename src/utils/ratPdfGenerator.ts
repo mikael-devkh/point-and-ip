@@ -1,4 +1,11 @@
-import { PDFDocument, PDFPage, PDFFont, StandardFonts, rgb } from "pdf-lib";
+import {
+  PDFDocument,
+  PDFPage,
+  PDFFont,
+  PDFTextField,
+  StandardFonts,
+  rgb,
+} from "pdf-lib";
 import ratTemplateUrl from "@/assets/rat-template.pdf?url";
 import { RatFormData } from "@/types/rat";
 import {
@@ -84,12 +91,15 @@ export const generateRatPDF = async (formData: RatFormData) => {
     const pageHeight = page.getHeight();
     const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-    // Log dos campos disponíveis para debug
+    // Limpa qualquer valor pré-existente no template antes de preencher
     try {
-      const fields = form.getFields().map((f: any) => f.getName());
-      log("Campos disponíveis no PDF:", fields);
+      form.getFields().forEach((field) => {
+        if (field instanceof PDFTextField) {
+          field.setText("");
+        }
+      });
     } catch (e) {
-      log("Não foi possível listar campos:", e);
+      log("Não foi possível limpar os campos do formulário:", e);
     }
 
     // IDENTIFICAÇÃO
