@@ -144,10 +144,11 @@ export const generateRatPDF = async (formData: RatFormData) => {
     // PEÇAS IMPRESSORA - Removido
 
     // MAU USO
+    const mauUsoMarkYFromTop = 322;
     if (formData.mauUso === "sim") {
-      drawMark(page, font, pageHeight, 407, 522);
+      drawMark(page, font, pageHeight, 407, mauUsoMarkYFromTop);
     } else if (formData.mauUso === "nao") {
-      drawMark(page, font, pageHeight, 480, 522);
+      drawMark(page, font, pageHeight, 480, mauUsoMarkYFromTop);
     }
 
     // OBSERVAÇÕES PEÇAS
