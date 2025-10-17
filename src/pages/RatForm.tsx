@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { Navigation } from "@/components/Navigation";
+import { RatHistoryList, RatHistoryEntry } from "@/components/RatHistoryList";
 import { FileText, Printer, RotateCcw, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { generateRatPDF } from "@/utils/ratPdfGenerator";
@@ -42,9 +43,12 @@ const extractCommonProblems = (text: string) => {
 const arraysEqual = (a: string[], b: string[]) =>
   a.length === b.length && a.every((value, index) => value === b[index]);
 
+const RAT_HISTORY_STORAGE_KEY = "ratHistory";
+
 const RatForm = () => {
   const [formData, setFormData] = useState<RatFormData>(() => createEmptyRatFormData());
   const [selectedProblems, setSelectedProblems] = useState<string[]>([]);
+  const [ratHistory, setRatHistory] = useState<RatHistoryEntry[]>([]);
 
   const toggleListValue = (list: string[], value: string, checked: boolean) => {
     if (checked) {
@@ -103,6 +107,39 @@ const RatForm = () => {
   };
 
   useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    try {
+      const stored = localStorage.getItem(RAT_HISTORY_STORAGE_KEY);
+      if (stored) {
+        const parsed: RatHistoryEntry[] = JSON.parse(stored);
+        setRatHistory(parsed);
+      }
+    } catch (error) {
+      console.error("Não foi possível carregar o histórico de RAT:", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    if (ratHistory.length === 0) {
+      localStorage.removeItem(RAT_HISTORY_STORAGE_KEY);
+      return;
+    }
+
+    try {
+      localStorage.setItem(RAT_HISTORY_STORAGE_KEY, JSON.stringify(ratHistory));
+    } catch (error) {
+      console.error("Não foi possível salvar o histórico de RAT:", error);
+    }
+  }, [ratHistory]);
+
+  useEffect(() => {
     const derivedProblems = extractCommonProblems(formData.defeitoProblema);
     setSelectedProblems((prev) => (arraysEqual(prev, derivedProblems) ? prev : derivedProblems));
   }, [formData.defeitoProblema]);
@@ -110,6 +147,20 @@ const RatForm = () => {
   const handleGeneratePDF = async () => {
     try {
       await generateRatPDF(formData);
+      setRatHistory((previous) => {
+        const entry: RatHistoryEntry = {
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          timestamp: Date.now(),
+          fsa: formData.fsa?.trim() || undefined,
+          codigoLoja: formData.codigoLoja?.trim() || undefined,
+          pdv: formData.pdv?.trim() || undefined,
+          defeitoProblema: formData.defeitoProblema?.trim() || undefined,
+          formData: cloneRatFormData(formData),
+        };
+
+        const nextHistory = [entry, ...previous];
+        return nextHistory.slice(0, 30);
+      });
       toast.success("PDF gerado com sucesso!");
     } catch (error) {
       toast.error("Erro ao gerar PDF");
@@ -117,36 +168,48 @@ const RatForm = () => {
     }
   };
 
+  const handleRatHistorySelect = (entry: RatHistoryEntry) => {
+    const restored = cloneRatFormData(entry.formData);
+    setFormData(restored);
+    toast.info("Dados da RAT carregados do histórico.");
+  };
+
+  const handleRatHistoryClear = () => {
+    setRatHistory([]);
+    toast.info("Histórico de RAT limpo.");
+  };
+
   return (
     <>
       <Navigation />
       <div className="min-h-screen bg-gradient-primary px-4 py-8 pt-24">
-        <div className="max-w-4xl mx-auto space-y-6">
-        <header className="text-center space-y-3">
-          <div className="flex justify-center">
-            <div className="p-3 bg-secondary rounded-2xl shadow-glow">
-              <FileText className="h-8 w-8 text-primary" />
+        <div className="max-w-6xl mx-auto space-y-6">
+          <header className="text-center space-y-3">
+            <div className="flex justify-center">
+              <div className="p-3 bg-secondary rounded-2xl shadow-glow">
+                <FileText className="h-8 w-8 text-primary" />
+              </div>
             </div>
-          </div>
-          <h1 className="text-3xl font-bold text-foreground">
-            Relatório de Atendimento Técnico - RAT
-          </h1>
-          <p className="text-muted-foreground">
-            Preencha os dados para gerar a RAT
-          </p>
-        </header>
+            <h1 className="text-3xl font-bold text-foreground">
+              Relatório de Atendimento Técnico - RAT
+            </h1>
+            <p className="text-muted-foreground">
+              Preencha os dados para gerar a RAT
+            </p>
+          </header>
 
-        <Card className="p-6 space-y-8">
-          <div className="flex flex-wrap justify-end gap-2">
-            <Button type="button" variant="outline" onClick={handleResetForm}>
-              <RotateCcw className="mr-2 h-4 w-4" />
-              Limpar formulário
-            </Button>
-            <Button type="button" variant="secondary" onClick={handleUseSampleData}>
-              <Sparkles className="mr-2 h-4 w-4" />
-              Preencher com exemplo
-            </Button>
-          </div>
+          <div className="grid gap-6 lg:grid-cols-[2fr,1fr]">
+            <Card className="p-6 space-y-8">
+              <div className="flex flex-wrap justify-end gap-2">
+                <Button type="button" variant="outline" onClick={handleResetForm}>
+                  <RotateCcw className="mr-2 h-4 w-4" />
+                  Limpar formulário
+                </Button>
+                <Button type="button" variant="secondary" onClick={handleUseSampleData}>
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Preencher com exemplo
+                </Button>
+              </div>
 
           {/* Identificação */}
           <section className="space-y-4">
@@ -565,7 +628,15 @@ const RatForm = () => {
               Gerar e Imprimir RAT
             </Button>
           </div>
-          </Card>
+            </Card>
+            <Card className="p-6 space-y-4 h-fit">
+              <RatHistoryList
+                history={ratHistory}
+                onSelect={handleRatHistorySelect}
+                onClear={handleRatHistoryClear}
+              />
+            </Card>
+          </div>
         </div>
       </div>
     </>

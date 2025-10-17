@@ -1,7 +1,5 @@
-import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Clock } from "lucide-react";
 import { IPConfig } from "@/utils/ipCalculator";
 
@@ -19,24 +17,7 @@ interface HistoryListProps {
 }
 
 export const HistoryList = ({ history, onSelect, onClear }: HistoryListProps) => {
-  const [searchTerm, setSearchTerm] = useState("");
-
-  const filteredHistory = useMemo(() => {
-    const normalizedTerm = searchTerm.trim().toLowerCase();
-    if (!normalizedTerm) {
-      return history;
-    }
-
-    return history.filter((item) => {
-      if (!item.fsa) {
-        return false;
-      }
-      return item.fsa.toLowerCase().includes(normalizedTerm);
-    });
-  }, [history, searchTerm]);
-
   const hasHistory = history.length > 0;
-  const hasFilteredResults = filteredHistory.length > 0;
 
   return (
     <div className="space-y-3">
@@ -56,21 +37,13 @@ export const HistoryList = ({ history, onSelect, onClear }: HistoryListProps) =>
         </Button>
       </div>
 
-      <Input
-        placeholder="Pesquisar por FSA"
-        value={searchTerm}
-        onChange={(event) => setSearchTerm(event.target.value)}
-        className="bg-secondary border-border text-foreground placeholder:text-muted-foreground"
-        disabled={!hasHistory}
-      />
-
       {!hasHistory ? (
         <div className="text-center py-8 text-muted-foreground">
           <Clock className="h-12 w-12 mx-auto mb-3 opacity-50" />
           <p>Nenhuma consulta recente</p>
         </div>
-      ) : hasFilteredResults ? (
-        filteredHistory.map((item, index) => (
+      ) : (
+        history.map((item, index) => (
           <Card
             key={`${item.timestamp}-${index}`}
             onClick={() => onSelect(item)}
@@ -82,7 +55,6 @@ export const HistoryList = ({ history, onSelect, onClear }: HistoryListProps) =>
                   {item.nomeLoja} - {item.tipo} {item.numeroPDV ? `#${item.numeroPDV}` : ""}
                 </p>
                 <p className="text-sm text-primary">{item.ip}</p>
-                {item.fsa && <p className="text-xs text-muted-foreground">FSA: {item.fsa}</p>}
               </div>
               <p className="text-xs text-muted-foreground">
                 {new Date(item.timestamp).toLocaleDateString("pt-BR")}
@@ -90,10 +62,6 @@ export const HistoryList = ({ history, onSelect, onClear }: HistoryListProps) =>
             </div>
           </Card>
         ))
-      ) : (
-        <div className="text-center py-6 text-muted-foreground border border-dashed border-border rounded-md">
-          Nenhum registro correspondente ao FSA informado.
-        </div>
       )}
     </div>
   );
