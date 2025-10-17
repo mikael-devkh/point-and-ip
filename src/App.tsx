@@ -7,7 +7,6 @@ import Index from "./pages/Index";
 import RatForm from "./pages/RatForm";
 import NotFound from "./pages/NotFound";
 import Troubleshooter from "./pages/Troubleshooter";
-import DataEditor from "./pages/DataEditor";
 
 const queryClient = new QueryClient();
 
@@ -22,7 +21,6 @@ const App = () => (
           <Route path="/rat" element={<RatForm />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="/troubleshooter" element={<Troubleshooter />} />
-          <Route path="/editor" element={<DataEditor />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

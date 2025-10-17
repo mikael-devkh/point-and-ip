@@ -1,12 +1,10 @@
 import { Link, useLocation } from "react-router-dom";
-import { Network, FileText, Zap, FileEdit } from "lucide-react";
+import { Network, FileText, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 export const Navigation = () => {
   const location = useLocation();
-  const isDevelopmentRoute = location.pathname === "/editor";
-
   const navItems = [
     {
       path: "/",
@@ -52,17 +50,6 @@ export const Navigation = () => {
             })}
           </div>
           <div className="flex items-center space-x-2">
-            <Link
-              to="/editor"
-              className={cn(
-                "flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-xs font-medium border border-dashed hover:bg-secondary",
-                isDevelopmentRoute ? "bg-secondary text-primary" : "text-muted-foreground"
-              )}
-              title="Editor de Desenvolvimento (Remover no futuro)"
-            >
-              <FileEdit className="h-4 w-4" />
-              Editor
-            </Link>
             <ThemeToggle />
           </div>
         </div>
