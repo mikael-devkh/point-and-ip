@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Network, FileText } from "lucide-react";
+import { Network, FileText, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
@@ -16,6 +16,11 @@ export const Navigation = () => {
       path: "/rat",
       label: "RAT",
       icon: FileText,
+    },
+    {
+      path: "/troubleshooter",
+      label: "Diagnóstico",
+      icon: Zap,
     },
   ];
 
