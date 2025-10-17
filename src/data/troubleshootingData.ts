@@ -1,3 +1,5 @@
+import { loadEditableData } from "@/utils/data-editor-utils";
+
 export interface Procedure {
   id: string;
   title: string;
@@ -309,4 +311,14 @@ export const mockTroubleshootingFlow: ChecklistStep[] = [
     resolution: "Encaminhar para Validação Delfia: **Problema nos Sensores Internos/Calibração Complexa.** Anotar: Falha persistente após limpeza e testes de rede. Necessário acompanhamento Delfia para validação de sensores ou reset completo.",
   },
 ];
+
+// --- Novas Funções de Acesso aos Dados (Versão Editável) ---
+
+export function getProcedures(): Procedure[] {
+  return loadEditableData().procedures;
+}
+
+export function getTroubleshootingFlow(): ChecklistStep[] {
+  return loadEditableData().flow;
+}
 

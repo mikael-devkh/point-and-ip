@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FileText, HelpCircle, Search, Zap, ChevronLeft } from "lucide-react";
-import { mockProcedures, mockTroubleshootingFlow, Procedure } from "@/data/troubleshootingData";
+import { getProcedures, getTroubleshootingFlow, Procedure } from "@/data/troubleshootingData";
 import { GuidedChecklist } from "@/components/GuidedChecklist";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -31,20 +31,22 @@ const ProcedureCard = ({ procedure, onSelect }: { procedure: Procedure; onSelect
 const Troubleshooter = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedProcedure, setSelectedProcedure] = useState<Procedure | null>(null);
+  const allProcedures = useMemo(() => getProcedures(), []);
+  const troubleshootingFlow = useMemo(() => getTroubleshootingFlow(), []);
 
   const filteredProcedures = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
     if (!normalizedSearch) {
-      return mockProcedures;
+      return allProcedures;
     }
 
-    return mockProcedures.filter(
+    return allProcedures.filter(
       (p) =>
         p.title.toLowerCase().includes(normalizedSearch) ||
         p.content.toLowerCase().includes(normalizedSearch) ||
         p.tags.some((tag) => tag.toLowerCase().includes(normalizedSearch))
     );
-  }, [searchTerm]);
+  }, [searchTerm, allProcedures]);
 
   const renderContent = (content: string) => {
     return content.split("\n").map((line, index) => {
@@ -109,7 +111,7 @@ const Troubleshooter = () => {
                 <HelpCircle className="h-5 w-5 text-primary" />
                 Checklist de Troubleshooting
               </h2>
-              <GuidedChecklist flowData={mockTroubleshootingFlow} />
+              <GuidedChecklist flowData={troubleshootingFlow} />
             </div>
 
             <Card className="lg:col-span-2 p-6 space-y-4 shadow-lg">
