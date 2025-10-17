@@ -6,10 +6,15 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Separator } from "@/components/ui/separator";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Navigation } from "@/components/Navigation";
 import { RatHistoryList, RatHistoryEntry } from "@/components/RatHistoryList";
-import { FileText, Printer, RotateCcw, Sparkles } from "lucide-react";
+import { FileText, Printer, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { generateRatPDF } from "@/utils/ratPdfGenerator";
 import { RatFormData } from "@/types/rat";
@@ -22,6 +27,7 @@ import {
   pecasImpressoraOptions,
   sampleRatFormData,
 } from "@/data/ratOptions";
+import { useHapticFeedback } from "@/hooks/use-haptic-feedback";
 
 const COMMON_PROBLEMS = [
   "Não liga",
@@ -49,6 +55,7 @@ const RatForm = () => {
   const [formData, setFormData] = useState<RatFormData>(() => createEmptyRatFormData());
   const [selectedProblems, setSelectedProblems] = useState<string[]>([]);
   const [ratHistory, setRatHistory] = useState<RatHistoryEntry[]>([]);
+  const { trigger: triggerHaptic } = useHapticFeedback();
 
   const toggleListValue = (list: string[], value: string, checked: boolean) => {
     if (checked) {
@@ -65,12 +72,14 @@ const RatForm = () => {
     setFormData(sampleData);
     setSelectedProblems(extractCommonProblems(sampleData.defeitoProblema));
     toast.success("Formulário preenchido com dados de teste.");
+    triggerHaptic(60);
   };
 
   const handleResetForm = () => {
     setFormData(createEmptyRatFormData());
     setSelectedProblems([]);
     toast.info("Formulário limpo.");
+    triggerHaptic(40);
   };
 
   const handleCommonProblemToggle = (problem: string, isChecked: boolean) => {
@@ -162,6 +171,7 @@ const RatForm = () => {
         return nextHistory.slice(0, 30);
       });
       toast.success("PDF gerado com sucesso!");
+      triggerHaptic(80);
     } catch (error) {
       toast.error("Erro ao gerar PDF");
       console.error(error);
@@ -172,11 +182,13 @@ const RatForm = () => {
     const restored = cloneRatFormData(entry.formData);
     setFormData(restored);
     toast.info("Dados da RAT carregados do histórico.");
+    triggerHaptic(50);
   };
 
   const handleRatHistoryClear = () => {
     setRatHistory([]);
     toast.info("Histórico de RAT limpo.");
+    triggerHaptic(50);
   };
 
   return (
@@ -199,435 +211,504 @@ const RatForm = () => {
           </header>
 
           <div className="grid gap-6 lg:grid-cols-[2fr,1fr]">
-            <Card className="p-6 space-y-8">
+            <Card className="p-6 space-y-6">
               <div className="flex flex-wrap justify-end gap-2">
                 <Button type="button" variant="outline" onClick={handleResetForm}>
                   <RotateCcw className="mr-2 h-4 w-4" />
                   Limpar formulário
                 </Button>
-                <Button type="button" variant="secondary" onClick={handleUseSampleData}>
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  Preencher com exemplo
+              </div>
+
+              <Accordion
+                type="multiple"
+                defaultValue={["identificacao", "equipamento", "laudo", "contatos"]}
+                className="space-y-4"
+              >
+                <AccordionItem value="identificacao">
+                  <AccordionTrigger className="text-left text-lg font-semibold">
+                    1. Identificação
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <div className="space-y-6 pt-2">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="codigoLoja">Código da Loja</Label>
+                          <Input
+                            id="codigoLoja"
+                            value={formData.codigoLoja}
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            onChange={(e) => setFormData({ ...formData, codigoLoja: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="pdv">PDV</Label>
+                          <Input
+                            id="pdv"
+                            value={formData.pdv}
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            onChange={(e) => setFormData({ ...formData, pdv: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="fsa">FSA</Label>
+                          <Input
+                            id="fsa"
+                            value={formData.fsa}
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            onChange={(e) => setFormData({ ...formData, fsa: e.target.value })}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="space-y-2 md:col-span-1">
+                          <Label htmlFor="endereco">Endereço</Label>
+                          <Input
+                            id="endereco"
+                            value={formData.endereco}
+                            onChange={(e) => setFormData({ ...formData, endereco: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="cidade">Cidade</Label>
+                          <Input
+                            id="cidade"
+                            value={formData.cidade}
+                            onChange={(e) => setFormData({ ...formData, cidade: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="uf">UF</Label>
+                          <Input
+                            id="uf"
+                            maxLength={2}
+                            value={formData.uf}
+                            onChange={(e) => setFormData({ ...formData, uf: e.target.value.toUpperCase() })}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="nomeSolicitante">Nome do Solicitante</Label>
+                        <Input
+                          id="nomeSolicitante"
+                          value={formData.nomeSolicitante}
+                          onChange={(e) => setFormData({ ...formData, nomeSolicitante: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem value="equipamento">
+                  <AccordionTrigger className="text-left text-lg font-semibold">
+                    2. Dados do Equipamento
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <div className="space-y-6 pt-2">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="serial">Número Série ATIVO</Label>
+                          <Input
+                            id="serial"
+                            value={formData.serial}
+                            onChange={(e) => setFormData({ ...formData, serial: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="patrimonio">Patrimônio</Label>
+                          <Input
+                            id="patrimonio"
+                            value={formData.patrimonio}
+                            onChange={(e) => setFormData({ ...formData, patrimonio: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="marca">Marca</Label>
+                          <Input
+                            id="marca"
+                            value={formData.marca}
+                            onChange={(e) => setFormData({ ...formData, marca: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="modelo">Modelo</Label>
+                          <Input
+                            id="modelo"
+                            value={formData.modelo}
+                            onChange={(e) => setFormData({ ...formData, modelo: e.target.value })}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label>Origem do Equipamento</Label>
+                          <RadioGroup
+                            value={formData.origemEquipamento}
+                            onValueChange={(value) => setFormData({ ...formData, origemEquipamento: value })}
+                          >
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                              {origemEquipamentoOptions.map((option) => (
+                                <div
+                                  key={option.value}
+                                  className="flex items-center space-x-2 rounded-md border border-input bg-background px-3 py-2"
+                                >
+                                  <RadioGroupItem value={option.value} id={`origem-${option.value}`} />
+                                  <Label htmlFor={`origem-${option.value}`} className="cursor-pointer text-sm">
+                                    {option.label}
+                                  </Label>
+                                </div>
+                              ))}
+                            </div>
+                          </RadioGroup>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Equipamento</Label>
+                            <RadioGroup
+                              value={formData.equipamento}
+                              onValueChange={(value) => setFormData({ ...formData, equipamento: value })}
+                            >
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                {equipamentoOptions.map((option) => (
+                                  <div
+                                    key={option.value}
+                                    className="flex items-center space-x-2 rounded-md border border-input bg-background px-3 py-2"
+                                  >
+                                    <RadioGroupItem value={option.value} id={`equip-${option.value}`} />
+                                    <Label htmlFor={`equip-${option.value}`} className="cursor-pointer text-sm">
+                                      {option.label}
+                                    </Label>
+                                  </div>
+                                ))}
+                              </div>
+                            </RadioGroup>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label>Peças/Cabos Substituídos</Label>
+                            <RadioGroup
+                              value={formData.pecasCabos}
+                              onValueChange={(value) => setFormData({ ...formData, pecasCabos: value })}
+                            >
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                {pecasCabosOptions.map((option) => (
+                                  <div
+                                    key={option.value}
+                                    className="flex items-center space-x-2 rounded-md border border-input bg-background px-3 py-2"
+                                  >
+                                    <RadioGroupItem value={option.value} id={`pecas-${option.value}`} />
+                                    <Label htmlFor={`pecas-${option.value}`} className="cursor-pointer text-sm">
+                                      {option.label}
+                                    </Label>
+                                  </div>
+                                ))}
+                              </div>
+                            </RadioGroup>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label>Peças da Impressora Substituídas</Label>
+                          <RadioGroup
+                            value={formData.pecasImpressora}
+                            onValueChange={(value) => setFormData({ ...formData, pecasImpressora: value })}
+                          >
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                              {pecasImpressoraOptions.map((option) => (
+                                <div
+                                  key={option.value}
+                                  className="flex items-center space-x-2 rounded-md border border-input bg-background px-3 py-2"
+                                >
+                                  <RadioGroupItem value={option.value} id={`pecas-impressora-${option.value}`} />
+                                  <Label
+                                    htmlFor={`pecas-impressora-${option.value}`}
+                                    className="cursor-pointer text-sm"
+                                  >
+                                    {option.label}
+                                  </Label>
+                                </div>
+                              ))}
+                            </div>
+                          </RadioGroup>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label>Mau Uso?</Label>
+                          <RadioGroup
+                            value={formData.mauUso}
+                            onValueChange={(value) => setFormData({ ...formData, mauUso: value })}
+                          >
+                            <div className="flex items-center space-x-4">
+                              <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="sim" id="mau-uso-sim" />
+                                <Label htmlFor="mau-uso-sim" className="cursor-pointer">
+                                  Sim
+                                </Label>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="nao" id="mau-uso-nao" />
+                                <Label htmlFor="mau-uso-nao" className="cursor-pointer">
+                                  Não
+                                </Label>
+                              </div>
+                            </div>
+                          </RadioGroup>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="observacoesPecas">Observações</Label>
+                          <Textarea
+                            id="observacoesPecas"
+                            value={formData.observacoesPecas}
+                            onChange={(e) => setFormData({ ...formData, observacoesPecas: e.target.value })}
+                            rows={3}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem value="laudo">
+                  <AccordionTrigger className="text-left text-lg font-semibold">
+                    3. Considerações Gerais – Laudo Técnico
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <div className="space-y-6 pt-2">
+                      <div className="space-y-3">
+                        <Label className="text-foreground font-medium">Problemas Comuns</Label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {COMMON_PROBLEMS.map((problem) => {
+                            const checkboxId = buildCheckboxId("problema-comum", problem);
+                            return (
+                              <div key={problem} className="flex items-center space-x-2">
+                                <Checkbox
+                                  id={checkboxId}
+                                  checked={selectedProblems.includes(problem)}
+                                  onCheckedChange={(checked) =>
+                                    handleCommonProblemToggle(problem, checked === true)
+                                  }
+                                />
+                                <Label htmlFor={checkboxId} className="text-sm leading-none cursor-pointer">
+                                  {problem}
+                                </Label>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="defeitoProblema">Defeito/Problema</Label>
+                        <Textarea
+                          id="defeitoProblema"
+                          value={formData.defeitoProblema}
+                          onChange={(e) => setFormData({ ...formData, defeitoProblema: e.target.value })}
+                          rows={3}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="diagnosticoTestes">Diagnóstico/Testes realizados</Label>
+                        <Textarea
+                          id="diagnosticoTestes"
+                          value={formData.diagnosticoTestes}
+                          onChange={(e) => setFormData({ ...formData, diagnosticoTestes: e.target.value })}
+                          rows={3}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="solucao">Solução</Label>
+                        <Textarea
+                          id="solucao"
+                          value={formData.solucao}
+                          onChange={(e) => setFormData({ ...formData, solucao: e.target.value })}
+                          rows={3}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Problema resolvido?</Label>
+                        <RadioGroup
+                          value={formData.problemaResolvido}
+                          onValueChange={(value) => setFormData({ ...formData, problemaResolvido: value })}
+                        >
+                          <div className="flex items-center space-x-4">
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="sim" id="problema-sim" />
+                              <Label htmlFor="problema-sim" className="cursor-pointer">
+                                Sim
+                              </Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="nao" id="problema-nao" />
+                              <Label htmlFor="problema-nao" className="cursor-pointer">
+                                Não
+                              </Label>
+                            </div>
+                          </div>
+                        </RadioGroup>
+                      </div>
+
+                      {formData.problemaResolvido === "nao" && (
+                        <div className="space-y-2">
+                          <Label htmlFor="motivoNaoResolvido">Caso não, descreva o motivo</Label>
+                          <Textarea
+                            id="motivoNaoResolvido"
+                            value={formData.motivoNaoResolvido}
+                            onChange={(e) => setFormData({ ...formData, motivoNaoResolvido: e.target.value })}
+                            rows={2}
+                          />
+                        </div>
+                      )}
+
+                      <div className="space-y-2">
+                        <Label>Haverá retorno?</Label>
+                        <RadioGroup
+                          value={formData.haveraRetorno}
+                          onValueChange={(value) => setFormData({ ...formData, haveraRetorno: value })}
+                        >
+                          <div className="flex items-center space-x-4">
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="sim" id="retorno-sim" />
+                              <Label htmlFor="retorno-sim" className="cursor-pointer">
+                                Sim
+                              </Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="nao" id="retorno-nao" />
+                              <Label htmlFor="retorno-nao" className="cursor-pointer">
+                                Não
+                              </Label>
+                            </div>
+                          </div>
+                        </RadioGroup>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="horaInicio">Hora início</Label>
+                          <Input
+                            id="horaInicio"
+                            type="time"
+                            value={formData.horaInicio}
+                            onChange={(e) => setFormData({ ...formData, horaInicio: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="horaTermino">Hora término</Label>
+                          <Input
+                            id="horaTermino"
+                            type="time"
+                            value={formData.horaTermino}
+                            onChange={(e) => setFormData({ ...formData, horaTermino: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="data">Data</Label>
+                          <Input
+                            id="data"
+                            type="date"
+                            value={formData.data}
+                            onChange={(e) => setFormData({ ...formData, data: e.target.value })}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem value="contatos">
+                  <AccordionTrigger className="text-left text-lg font-semibold">
+                    4. Dados do Cliente e Prestador
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <div className="space-y-6 pt-2">
+                      <div className="space-y-4">
+                        <h3 className="text-lg font-semibold text-foreground">Dados do Cliente</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="clienteNome">Nome Legível</Label>
+                            <Input
+                              id="clienteNome"
+                              value={formData.clienteNome}
+                              onChange={(e) => setFormData({ ...formData, clienteNome: e.target.value })}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="clienteRgMatricula">RG ou Matrícula</Label>
+                            <Input
+                              id="clienteRgMatricula"
+                              value={formData.clienteRgMatricula}
+                              onChange={(e) =>
+                                setFormData({ ...formData, clienteRgMatricula: e.target.value })
+                              }
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="clienteTelefone">Telefone</Label>
+                            <Input
+                              id="clienteTelefone"
+                              value={formData.clienteTelefone}
+                              onChange={(e) =>
+                                setFormData({ ...formData, clienteTelefone: e.target.value })
+                              }
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        <h3 className="text-lg font-semibold text-foreground">Dados do Prestador</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="prestadorNome">Nome Legível</Label>
+                            <Input
+                              id="prestadorNome"
+                              value={formData.prestadorNome}
+                              onChange={(e) => setFormData({ ...formData, prestadorNome: e.target.value })}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="prestadorRgMatricula">RG ou Matrícula</Label>
+                            <Input
+                              id="prestadorRgMatricula"
+                              value={formData.prestadorRgMatricula}
+                              onChange={(e) =>
+                                setFormData({ ...formData, prestadorRgMatricula: e.target.value })
+                              }
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="prestadorTelefone">Telefone</Label>
+                            <Input
+                              id="prestadorTelefone"
+                              value={formData.prestadorTelefone}
+                              onChange={(e) =>
+                                setFormData({ ...formData, prestadorTelefone: e.target.value })
+                              }
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+
+              <div className="flex justify-center pt-2">
+                <Button onClick={handleGeneratePDF} size="lg" className="gap-2">
+                  <Printer className="h-5 w-5" />
+                  Gerar e Imprimir RAT
                 </Button>
               </div>
-
-          {/* Identificação */}
-          <section className="space-y-4">
-            <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
-              Identificação
-            </h2>
-            <Separator />
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="codigoLoja">Código da Loja</Label>
-                <Input
-                  id="codigoLoja"
-                  value={formData.codigoLoja}
-                  onChange={(e) => setFormData({ ...formData, codigoLoja: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="pdv">PDV</Label>
-                <Input
-                  id="pdv"
-                  value={formData.pdv}
-                  onChange={(e) => setFormData({ ...formData, pdv: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="fsa">FSA</Label>
-                <Input
-                  id="fsa"
-                  value={formData.fsa}
-                  onChange={(e) => setFormData({ ...formData, fsa: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2 md:col-span-1">
-                <Label htmlFor="endereco">Endereço</Label>
-                <Input
-                  id="endereco"
-                  value={formData.endereco}
-                  onChange={(e) => setFormData({ ...formData, endereco: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="cidade">Cidade</Label>
-                <Input
-                  id="cidade"
-                  value={formData.cidade}
-                  onChange={(e) => setFormData({ ...formData, cidade: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="uf">UF</Label>
-                <Input
-                  id="uf"
-                  maxLength={2}
-                  value={formData.uf}
-                  onChange={(e) => setFormData({ ...formData, uf: e.target.value.toUpperCase() })}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="nomeSolicitante">Nome do Solicitante</Label>
-              <Input
-                id="nomeSolicitante"
-                value={formData.nomeSolicitante}
-                onChange={(e) => setFormData({ ...formData, nomeSolicitante: e.target.value })}
-              />
-            </div>
-          </section>
-
-          {/* Dados do Equipamento */}
-          <section className="space-y-4">
-            <h2 className="text-xl font-semibold text-foreground">Dados do Equipamento</h2>
-            <Separator />
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-              <div className="space-y-2">
-                <Label htmlFor="serial">Número Série ATIVO</Label>
-                <Input
-                  id="serial"
-                  value={formData.serial}
-                  onChange={(e) => setFormData({ ...formData, serial: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="patrimonio">Patrimônio</Label>
-                <Input
-                  id="patrimonio"
-                  value={formData.patrimonio}
-                  onChange={(e) => setFormData({ ...formData, patrimonio: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="marca">Marca</Label>
-                <Input
-                  id="marca"
-                  value={formData.marca}
-                  onChange={(e) => setFormData({ ...formData, marca: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="modelo">Modelo</Label>
-                <Input
-                  id="modelo"
-                  value={formData.modelo}
-                  onChange={(e) => setFormData({ ...formData, modelo: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Origem do Equipamento</Label>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {origemEquipamentoOptions.map((origem) => {
-                  const checkboxId = buildCheckboxId("origem", origem.value);
-                  return (
-                    <div key={origem.value} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={checkboxId}
-                        checked={formData.origemEquipamento === origem.value}
-                        onCheckedChange={(checked) =>
-                          setFormData({
-                            ...formData,
-                            origemEquipamento: checked ? origem.value : "",
-                          })
-                        }
-                      />
-                      <label htmlFor={checkboxId} className="text-sm cursor-pointer">
-                        {origem.label}
-                      </label>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="numeroSerieTroca">Número Série Troca</Label>
-                <Input
-                  id="numeroSerieTroca"
-                  value={formData.numeroSerieTroca}
-                  onChange={(e) => setFormData({ ...formData, numeroSerieTroca: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="equipNovoRecond">Equip. Novo/Recond.</Label>
-                <Input
-                  id="equipNovoRecond"
-                  value={formData.equipNovoRecond}
-                  onChange={(e) => setFormData({ ...formData, equipNovoRecond: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="marcaTroca">Marca (Troca)</Label>
-                <Input
-                  id="marcaTroca"
-                  value={formData.marcaTroca}
-                  onChange={(e) => setFormData({ ...formData, marcaTroca: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="modeloTroca">Modelo (Troca)</Label>
-                <Input
-                  id="modeloTroca"
-                  value={formData.modeloTroca}
-                  onChange={(e) => setFormData({ ...formData, modeloTroca: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Mau uso</Label>
-              <RadioGroup value={formData.mauUso} onValueChange={(value) => setFormData({ ...formData, mauUso: value })}>
-                <div className="flex items-center space-x-4">
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="sim" id="mau-uso-sim" />
-                    <Label htmlFor="mau-uso-sim" className="cursor-pointer">Sim</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="nao" id="mau-uso-nao" />
-                    <Label htmlFor="mau-uso-nao" className="cursor-pointer">Não</Label>
-                  </div>
-                </div>
-              </RadioGroup>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="observacoesPecas">Observações</Label>
-              <Textarea
-                id="observacoesPecas"
-                value={formData.observacoesPecas}
-                onChange={(e) => setFormData({ ...formData, observacoesPecas: e.target.value })}
-                rows={3}
-              />
-            </div>
-          </section>
-
-          {/* Laudo Técnico */}
-          <section className="space-y-4">
-            <h2 className="text-xl font-semibold text-foreground">Considerações Gerais – Laudo Técnico</h2>
-            <Separator />
-
-            <div className="space-y-4">
-              <div className="space-y-3">
-                <Label className="text-foreground font-medium">Problemas Comuns</Label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {COMMON_PROBLEMS.map((problem) => {
-                    const checkboxId = buildCheckboxId("problema-comum", problem);
-                    return (
-                      <div key={problem} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={checkboxId}
-                          checked={selectedProblems.includes(problem)}
-                          onCheckedChange={(checked) =>
-                            handleCommonProblemToggle(problem, checked === true)
-                          }
-                        />
-                        <Label htmlFor={checkboxId} className="text-sm leading-none cursor-pointer">
-                          {problem}
-                        </Label>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="defeitoProblema">Defeito/Problema</Label>
-                <Textarea
-                  id="defeitoProblema"
-                  value={formData.defeitoProblema}
-                  onChange={(e) => setFormData({ ...formData, defeitoProblema: e.target.value })}
-                  rows={3}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="diagnosticoTestes">Diagnóstico/Testes realizados</Label>
-                <Textarea
-                  id="diagnosticoTestes"
-                  value={formData.diagnosticoTestes}
-                  onChange={(e) => setFormData({ ...formData, diagnosticoTestes: e.target.value })}
-                  rows={3}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="solucao">Solução</Label>
-                <Textarea
-                  id="solucao"
-                  value={formData.solucao}
-                  onChange={(e) => setFormData({ ...formData, solucao: e.target.value })}
-                  rows={3}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Problema resolvido?</Label>
-                <RadioGroup
-                  value={formData.problemaResolvido}
-                  onValueChange={(value) => setFormData({ ...formData, problemaResolvido: value })}
-                >
-                  <div className="flex items-center space-x-4">
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="sim" id="problema-sim" />
-                      <Label htmlFor="problema-sim" className="cursor-pointer">Sim</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="nao" id="problema-nao" />
-                      <Label htmlFor="problema-nao" className="cursor-pointer">Não</Label>
-                    </div>
-                  </div>
-                </RadioGroup>
-              </div>
-
-              {formData.problemaResolvido === "nao" && (
-                <div className="space-y-2">
-                  <Label htmlFor="motivoNaoResolvido">Caso não, descreva o motivo</Label>
-                  <Textarea
-                    id="motivoNaoResolvido"
-                    value={formData.motivoNaoResolvido}
-                    onChange={(e) => setFormData({ ...formData, motivoNaoResolvido: e.target.value })}
-                    rows={2}
-                  />
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <Label>Haverá retorno?</Label>
-                <RadioGroup
-                  value={formData.haveraRetorno}
-                  onValueChange={(value) => setFormData({ ...formData, haveraRetorno: value })}
-                >
-                  <div className="flex items-center space-x-4">
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="sim" id="retorno-sim" />
-                      <Label htmlFor="retorno-sim" className="cursor-pointer">Sim</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="nao" id="retorno-nao" />
-                      <Label htmlFor="retorno-nao" className="cursor-pointer">Não</Label>
-                    </div>
-                  </div>
-                </RadioGroup>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="horaInicio">Hora início</Label>
-                  <Input
-                    id="horaInicio"
-                    type="time"
-                    value={formData.horaInicio}
-                    onChange={(e) => setFormData({ ...formData, horaInicio: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="horaTermino">Hora término</Label>
-                  <Input
-                    id="horaTermino"
-                    type="time"
-                    value={formData.horaTermino}
-                    onChange={(e) => setFormData({ ...formData, horaTermino: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="data">Data</Label>
-                  <Input
-                    id="data"
-                    type="date"
-                    value={formData.data}
-                    onChange={(e) => setFormData({ ...formData, data: e.target.value })}
-                  />
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* Cliente e Prestador */}
-          <section className="space-y-4">
-            <h2 className="text-xl font-semibold text-foreground">Dados do Cliente</h2>
-            <Separator />
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="clienteNome">Nome Legível</Label>
-                <Input
-                  id="clienteNome"
-                  value={formData.clienteNome}
-                  onChange={(e) => setFormData({ ...formData, clienteNome: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="clienteRgMatricula">RG ou Matrícula</Label>
-                <Input
-                  id="clienteRgMatricula"
-                  value={formData.clienteRgMatricula}
-                  onChange={(e) => setFormData({ ...formData, clienteRgMatricula: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="clienteTelefone">Telefone</Label>
-                <Input
-                  id="clienteTelefone"
-                  value={formData.clienteTelefone}
-                  onChange={(e) => setFormData({ ...formData, clienteTelefone: e.target.value })}
-                />
-              </div>
-            </div>
-          </section>
-
-          <section className="space-y-4">
-            <h2 className="text-xl font-semibold text-foreground">Dados do Prestador</h2>
-            <Separator />
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="prestadorNome">Nome Legível</Label>
-                <Input
-                  id="prestadorNome"
-                  value={formData.prestadorNome}
-                  onChange={(e) => setFormData({ ...formData, prestadorNome: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="prestadorRgMatricula">RG ou Matrícula</Label>
-                <Input
-                  id="prestadorRgMatricula"
-                  value={formData.prestadorRgMatricula}
-                  onChange={(e) => setFormData({ ...formData, prestadorRgMatricula: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="prestadorTelefone">Telefone</Label>
-                <Input
-                  id="prestadorTelefone"
-                  value={formData.prestadorTelefone}
-                  onChange={(e) => setFormData({ ...formData, prestadorTelefone: e.target.value })}
-                />
-              </div>
-            </div>
-          </section>
-
-          {/* Botão Gerar PDF */}
-          <div className="flex justify-center pt-4">
-            <Button
-              onClick={handleGeneratePDF}
-              size="lg"
-              className="gap-2"
-            >
-              <Printer className="h-5 w-5" />
-              Gerar e Imprimir RAT
-            </Button>
-          </div>
             </Card>
             <Card className="p-6 space-y-4 h-fit">
               <RatHistoryList

@@ -34,6 +34,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const EditableProcedureCard = ({
   procedure,
@@ -185,11 +186,13 @@ const ChecklistStepEditor = ({
 };
 
 const Troubleshooter = () => {
+  const isMobile = useIsMobile();
   const [kbData, setKbData] = useState<Procedure[]>(getProcedures);
   const [flowData, setFlowData] = useState<ChecklistStep[]>(getTroubleshootingFlow);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedProcedure, setSelectedProcedure] = useState<Procedure | null>(null);
   const [activeTab, setActiveTab] = useState<"kb" | "flow">("kb");
+  const [activeMobileTab, setActiveMobileTab] = useState<"checklist" | "procedures">("checklist");
 
   const filteredProcedures = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -324,6 +327,128 @@ const Troubleshooter = () => {
     });
   };
 
+  const checklistSection = (
+    <div className="space-y-4">
+      <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+        <HelpCircle className="h-5 w-5 text-primary" />
+        Checklist de Troubleshooting
+      </h2>
+      <GuidedChecklist flowData={flowData} />
+    </div>
+  );
+
+  const proceduresSection = (
+    <Card className="lg:col-span-2 p-6 space-y-4 shadow-lg">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+          <FileText className="h-5 w-5 text-primary" />
+          Base de Conhecimento (Offline)
+        </h2>
+        <div className="flex space-x-2">
+          <Button onClick={handleResetData} variant="destructive" size="sm" className="gap-2">
+            <RotateCcw className="h-4 w-4" /> Resetar Edições
+          </Button>
+        </div>
+      </div>
+
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "kb" | "flow")}>
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="kb">Base de Conhecimento (KB)</TabsTrigger>
+          <TabsTrigger value="flow">Editor de Fluxo</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="kb" className="mt-4 space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Pesquisar ou clique para editar o título e tags"
+                value={searchTerm}
+                onChange={(event) => {
+                  setSearchTerm(event.target.value);
+                  setSelectedProcedure(null);
+                }}
+                className="w-full pl-10 bg-background border-border text-foreground placeholder:text-muted-foreground"
+              />
+            </div>
+            <Button
+              onClick={handleAddNewProcedure}
+              variant="secondary"
+              size="sm"
+              className="gap-2 shrink-0"
+            >
+              + Novo Proc.
+            </Button>
+          </div>
+
+          {selectedProcedure ? (
+            <ScrollArea className="h-[500px] rounded-md border p-4 bg-background">
+              <div className="space-y-4">
+                <div className="flex items-start justify-between border-b pb-3">
+                  <h3 className="text-2xl font-bold text-primary">{selectedProcedure.title}</h3>
+                  <Button
+                    variant="outline"
+                    onClick={() => setSelectedProcedure(null)}
+                    className="shrink-0 gap-1.5"
+                  >
+                    <ChevronLeft className="h-4 w-4" /> Voltar
+                  </Button>
+                </div>
+                <h4 className="text-lg font-semibold text-foreground">Conteúdo Detalhado (Leia/Edite)</h4>
+                <div className="prose dark:prose-invert max-w-none space-y-2 text-foreground">
+                  {renderContent(selectedProcedure.content)}
+                </div>
+                <div className="flex justify-end pt-4">
+                  <ProcedureEditorDialog procedure={selectedProcedure} onSave={handleProcedureUpdate} />
+                </div>
+              </div>
+            </ScrollArea>
+          ) : (
+            <>
+              <p
+                className={cn(
+                  "text-sm text-muted-foreground",
+                  !filteredProcedures.length && "text-center"
+                )}
+              >
+                {filteredProcedures.length > 0
+                  ? `Encontrados ${filteredProcedures.length} procedimentos (clique no título ou tags para editar):`
+                  : "Nenhum procedimento encontrado. Use o botão '+ Novo Proc.' para adicionar."}
+              </p>
+              <ScrollArea className="h-[500px] rounded-md border p-4 bg-background">
+                <div className="space-y-3">
+                  {filteredProcedures.map((procedure) => (
+                    <EditableProcedureCard
+                      key={procedure.id}
+                      procedure={procedure}
+                      onSelect={setSelectedProcedure}
+                      onUpdate={handleProcedureUpdate}
+                      onDelete={handleDeleteProcedure}
+                    />
+                  ))}
+                </div>
+              </ScrollArea>
+            </>
+          )}
+        </TabsContent>
+
+        <TabsContent value="flow" className="mt-4 space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Edite as perguntas, opções e resoluções de cada passo do fluxo de troubleshooting. O ID de cada passo é
+            crucial para a navegação do checklist.
+          </p>
+          <ScrollArea className="h-[500px] rounded-md border p-4 bg-background">
+            <div className="space-y-4">
+              {flowData.map((step) => (
+                <ChecklistStepEditor key={step.id} step={step} onUpdate={handleFlowStepUpdate} />
+              ))}
+            </div>
+          </ScrollArea>
+        </TabsContent>
+      </Tabs>
+    </Card>
+  );
+
   return (
     <>
       <Navigation />
@@ -341,125 +466,25 @@ const Troubleshooter = () => {
             </p>
           </header>
 
-          <div className="grid gap-6 lg:grid-cols-3">
-            <div className="lg:col-span-1 space-y-4">
-              <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
-                <HelpCircle className="h-5 w-5 text-primary" />
-                Checklist de Troubleshooting
-              </h2>
-              <GuidedChecklist flowData={flowData} />
+          {isMobile ? (
+            <Tabs
+              value={activeMobileTab}
+              onValueChange={(value) => setActiveMobileTab(value as "checklist" | "procedures")}
+              className="space-y-4"
+            >
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="checklist">Checklist</TabsTrigger>
+                <TabsTrigger value="procedures">Procedimentos</TabsTrigger>
+              </TabsList>
+              <TabsContent value="checklist">{checklistSection}</TabsContent>
+              <TabsContent value="procedures">{proceduresSection}</TabsContent>
+            </Tabs>
+          ) : (
+            <div className="grid gap-6 lg:grid-cols-3">
+              <div className="lg:col-span-1">{checklistSection}</div>
+              {proceduresSection}
             </div>
-
-            <Card className="lg:col-span-2 p-6 space-y-4 shadow-lg">
-              <div className="flex justify-between items-center">
-                <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-primary" />
-                  Base de Conhecimento (Offline)
-                </h2>
-                <div className="flex space-x-2">
-                  <Button onClick={handleResetData} variant="destructive" size="sm" className="gap-2">
-                    <RotateCcw className="h-4 w-4" /> Resetar Edições
-                  </Button>
-                </div>
-              </div>
-
-              <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "kb" | "flow") }>
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="kb">Base de Conhecimento (KB)</TabsTrigger>
-                  <TabsTrigger value="flow">Editor de Fluxo</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="kb" className="mt-4 space-y-4">
-                  <div className="flex items-center gap-3">
-                    <div className="relative flex-1">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        placeholder="Pesquisar ou clique para editar o título e tags"
-                        value={searchTerm}
-                        onChange={(event) => {
-                          setSearchTerm(event.target.value);
-                          setSelectedProcedure(null);
-                        }}
-                        className="w-full pl-10 bg-background border-border text-foreground placeholder:text-muted-foreground"
-                      />
-                    </div>
-                    <Button
-                      onClick={handleAddNewProcedure}
-                      variant="secondary"
-                      size="sm"
-                      className="gap-2 shrink-0"
-                    >
-                      + Novo Proc.
-                    </Button>
-                  </div>
-
-                  {selectedProcedure ? (
-                    <ScrollArea className="h-[500px] rounded-md border p-4 bg-background">
-                      <div className="space-y-4">
-                        <div className="flex items-start justify-between border-b pb-3">
-                          <h3 className="text-2xl font-bold text-primary">{selectedProcedure.title}</h3>
-                          <Button
-                            variant="outline"
-                            onClick={() => setSelectedProcedure(null)}
-                            className="shrink-0 gap-1.5"
-                          >
-                            <ChevronLeft className="h-4 w-4" /> Voltar
-                          </Button>
-                        </div>
-                        <h4 className="text-lg font-semibold text-foreground">Conteúdo Detalhado (Leia/Edite)</h4>
-                        <div className="prose dark:prose-invert max-w-none space-y-2 text-foreground">
-                          {renderContent(selectedProcedure.content)}
-                        </div>
-                        <div className="flex justify-end pt-4">
-                          <ProcedureEditorDialog procedure={selectedProcedure} onSave={handleProcedureUpdate} />
-                        </div>
-                      </div>
-                    </ScrollArea>
-                  ) : (
-                    <>
-                      <p
-                        className={cn(
-                          "text-sm text-muted-foreground",
-                          !filteredProcedures.length && "text-center"
-                        )}
-                      >
-                        {filteredProcedures.length > 0
-                          ? `Encontrados ${filteredProcedures.length} procedimentos (clique no título ou tags para editar):`
-                          : "Nenhum procedimento encontrado. Use o botão '+ Novo Proc.' para adicionar."}
-                      </p>
-                      <ScrollArea className="h-[500px] rounded-md border p-4 bg-background">
-                        <div className="space-y-3">
-                          {filteredProcedures.map((procedure) => (
-                            <EditableProcedureCard
-                              key={procedure.id}
-                              procedure={procedure}
-                              onSelect={setSelectedProcedure}
-                              onUpdate={handleProcedureUpdate}
-                              onDelete={handleDeleteProcedure}
-                            />
-                          ))}
-                        </div>
-                      </ScrollArea>
-                    </>
-                  )}
-                </TabsContent>
-
-                <TabsContent value="flow" className="mt-4 space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    Edite as perguntas, opções e resoluções de cada passo do fluxo de troubleshooting. O ID de cada passo é
-                    crucial para a navegação do checklist.
-                  </p>
-                  <ScrollArea className="h-[500px] rounded-md border p-4 bg-background">
-                    <div className="space-y-4">
-                      {flowData.map((step) => (
-                        <ChecklistStepEditor key={step.id} step={step} onUpdate={handleFlowStepUpdate} />
-                      ))}
-                    </div>
-                  </ScrollArea>
-                </TabsContent>
-              </Tabs>
-            </Card>
-          </div>
+          )}
         </div>
       </div>
     </>
