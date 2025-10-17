@@ -70,6 +70,12 @@ const Index = () => {
     setResult(item);
   };
 
+  const handleHistoryClear = () => {
+    setHistory([]);
+    localStorage.removeItem("searchHistory");
+    toast.info("Histórico limpo.");
+  };
+
   return (
     <>
       <Navigation />
@@ -110,9 +116,7 @@ const Index = () => {
             </div>
           )}
 
-          {history.length > 0 && (
-            <HistoryList history={history} onSelect={handleHistorySelect} />
-          )}
+          <HistoryList history={history} onSelect={handleHistorySelect} onClear={handleHistoryClear} />
           </div>
         </div>
       </div>
