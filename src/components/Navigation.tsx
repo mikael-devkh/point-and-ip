@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Network, FileText, Zap } from "lucide-react";
+import { Network, FileText, Zap, DollarSign } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
@@ -20,6 +20,11 @@ export const Navigation = () => {
       path: "/troubleshooter",
       label: "Diagnóstico",
       icon: Zap,
+    },
+    {
+      path: "/service-manager",
+      label: "Chamados/Mídia",
+      icon: DollarSign,
     },
   ];
 

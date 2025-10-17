@@ -1,4 +1,11 @@
-import { PDFDocument, PDFPage, PDFFont, StandardFonts, rgb } from "pdf-lib";
+import {
+  PDFDocument,
+  PDFPage,
+  PDFFont,
+  PDFTextField,
+  StandardFonts,
+  rgb,
+} from "pdf-lib";
 import ratTemplateUrl from "@/assets/rat-template.pdf?url";
 import { RatFormData } from "@/types/rat";
 import {
@@ -11,15 +18,14 @@ import {
 const log = (...args: any[]) => console.debug("[RAT]", ...args);
 
 // Helper para setar texto em campos do formulário
-function setTextSafe(form: any, fieldName: string, value?: string) {
+function setTextSafe(form: any, fieldName: string, value?: string | null) {
+  const textValue = value === undefined || value === null ? "" : String(value);
   try {
-    if (value === undefined || value === null) return;
-    const v = String(value);
-    if (!v) return;
-    form.getTextField(fieldName).setText(v);
+    form.getTextField(fieldName).setText(textValue);
   } catch {
+    if (!textValue) return;
     try {
-      form.getDropdown(fieldName).select(String(value));
+      form.getDropdown(fieldName).select(textValue);
     } catch {}
   }
 }
@@ -31,6 +37,29 @@ const splitLines = (text?: string, maxLines = 4) =>
     .map((x) => x.trim())
     .filter(Boolean)
     .slice(0, maxLines);
+
+const getOrigemCodigo = (value?: string) => {
+  if (!value) return "";
+  const [codigo] = value.split("-");
+  return codigo?.trim() ?? "";
+};
+
+const formatDateBr = (value?: string) => {
+  if (!value) return "";
+  const [datePart] = value.split("T");
+  const match = datePart?.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (match) {
+    const [, year, month, day] = match;
+    return `${day}/${month}/${year}`;
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return "";
+  }
+
+  return parsed.toLocaleDateString("pt-BR");
+};
 
 const normalizeHour = (hour?: string) => (hour ? hour.replace(/\s+/g, "") : hour);
 
@@ -62,12 +91,15 @@ export const generateRatPDF = async (formData: RatFormData) => {
     const pageHeight = page.getHeight();
     const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-    // Log dos campos disponíveis para debug
+    // Limpa qualquer valor pré-existente no template antes de preencher
     try {
-      const fields = form.getFields().map((f: any) => f.getName());
-      log("Campos disponíveis no PDF:", fields);
+      form.getFields().forEach((field) => {
+        if (field instanceof PDFTextField) {
+          field.setText("");
+        }
+      });
     } catch (e) {
-      log("Não foi possível listar campos:", e);
+      log("Não foi possível limpar os campos do formulário:", e);
     }
 
     // IDENTIFICAÇÃO
@@ -79,30 +111,22 @@ export const generateRatPDF = async (formData: RatFormData) => {
     setTextSafe(form, "UF", formData.uf);
     setTextSafe(form, "Nomedosolicitante", formData.nomeSolicitante);
 
-    // EQUIPAMENTOS ENVOLVIDOS - Checkboxes
-    formData.equipamentos.forEach((equip) => {
-      const option = equipamentoOptions.find((item) => item.value === equip);
-      if (!option) return;
-      drawMark(page, font, pageHeight, option.pdfPosition.x, option.pdfPosition.yFromTop);
-    });
+    // EQUIPAMENTOS ENVOLVIDOS - Removido
 
     // DADOS DO EQUIPAMENTO
-    setTextSafe(form, "Serial", formData.patrimonioNumeroSerie);
-    setTextSafe(form, "Patrimonio", formData.patrimonioNumeroSerie);
+    setTextSafe(form, "Serial", formData.serial);
+    setTextSafe(form, "Patrimonio", formData.patrimonio);
     setTextSafe(form, "Marca", formData.marca);
     setTextSafe(form, "Modelo", formData.modelo);
 
-    const equipDefeitoLines = splitLines(formData.equipComDefeito, 3);
-    setTextSafe(form, "Row1", equipDefeitoLines[0]);
-    setTextSafe(form, "Row2", equipDefeitoLines[1]);
-    setTextSafe(form, "Row3", equipDefeitoLines[2]);
-
-    // ORIGEM DO EQUIPAMENTO
-    const origemOption = origemEquipamentoOptions.find(
-      (option) => option.value === formData.origemEquipamento,
-    );
-    if (origemOption) {
-      drawMark(page, font, pageHeight, origemOption.pdfPosition.x, origemOption.pdfPosition.yFromTop);
+    // ORIGEM DO EQUIPAMENTO - preencher apenas E1, E2, etc
+    if (formData.origemEquipamento) {
+      const origemOption = origemEquipamentoOptions.find(
+        (option) => option.value === formData.origemEquipamento,
+      );
+      if (origemOption) {
+        setTextSafe(form, "Origem", getOrigemCodigo(origemOption.value));
+      }
     }
 
     // DADOS DA TROCA
@@ -111,47 +135,43 @@ export const generateRatPDF = async (formData: RatFormData) => {
     }
     setTextSafe(form, "MarcaNovo", formData.marcaTroca);
     setTextSafe(form, "ModeloNovo", formData.modeloTroca);
-    setTextSafe(form, "Origem", formData.equipNovoRecond);
+    if (!formData.origemEquipamento) {
+      setTextSafe(form, "Origem", formData.equipNovoRecond);
+    }
 
-    // PEÇAS/CABOS - Checkboxes
-    formData.pecasCabos?.forEach((peca) => {
-      const option = pecasCabosOptions.find((item) => item.value === peca);
-      if (!option) return;
-      drawMark(page, font, pageHeight, option.pdfPosition.x, option.pdfPosition.yFromTop);
-    });
-
-    // PEÇAS IMPRESSORA - Checkboxes
-    formData.pecasImpressora?.forEach((peca) => {
-      const option = pecasImpressoraOptions.find((item) => item.value === peca);
-      if (!option) return;
-      drawMark(page, font, pageHeight, option.pdfPosition.x, option.pdfPosition.yFromTop);
-    });
+    // PEÇAS/CABOS - Removido
+    
+    // PEÇAS IMPRESSORA - Removido
 
     // MAU USO
+    const mauUsoMarkYFromTop = 322;
     if (formData.mauUso === "sim") {
-      drawMark(page, font, pageHeight, 407, 522);
+      drawMark(page, font, pageHeight, 407, mauUsoMarkYFromTop);
     } else if (formData.mauUso === "nao") {
-      drawMark(page, font, pageHeight, 480, 522);
+      drawMark(page, font, pageHeight, 480, mauUsoMarkYFromTop);
     }
 
     // OBSERVAÇÕES PEÇAS
-    setTextSafe(form, "Observações", formData.observacoesPecas);
+    const observacoesLines = splitLines(formData.observacoesPecas, 3);
+    setTextSafe(form, "Row1", observacoesLines[0] ?? "");
+    setTextSafe(form, "Row2", observacoesLines[1] ?? "");
+    setTextSafe(form, "Row3", observacoesLines[2] ?? "");
 
     // DEFEITO/PROBLEMA
     const defeitoLines = splitLines(formData.defeitoProblema, 2);
-    setTextSafe(form, "DefeitoProblemaRow1", defeitoLines[0]);
-    setTextSafe(form, "DefeitoProblemaRow2", defeitoLines[1]);
+    setTextSafe(form, "DefeitoProblemaRow1", defeitoLines[0] ?? "");
+    setTextSafe(form, "DefeitoProblemaRow2", defeitoLines[1] ?? "");
 
     // DIAGNÓSTICO/TESTES
     const diagnosticoLines = splitLines(formData.diagnosticoTestes, 4);
-    setTextSafe(form, "DiagnósticoTestesrealizadosRow1", diagnosticoLines[0]);
-    setTextSafe(form, "DiagnósticoTestesrealizadosRow2", diagnosticoLines[1]);
-    setTextSafe(form, "DiagnósticoTestesrealizadosRow3", diagnosticoLines[2]);
-    setTextSafe(form, "DiagnósticoTestesrealizadosRow4", diagnosticoLines[3]);
+    setTextSafe(form, "DiagnósticoTestesrealizadosRow1", diagnosticoLines[0] ?? "");
+    setTextSafe(form, "DiagnósticoTestesrealizadosRow2", diagnosticoLines[1] ?? "");
+    setTextSafe(form, "DiagnósticoTestesrealizadosRow3", diagnosticoLines[2] ?? "");
+    setTextSafe(form, "DiagnósticoTestesrealizadosRow4", diagnosticoLines[3] ?? "");
 
     // SOLUÇÃO
     const solucaoLines = splitLines(formData.solucao, 1);
-    setTextSafe(form, "SoluçãoRow1", solucaoLines[0]);
+    setTextSafe(form, "SoluçãoRow1", solucaoLines[0] ?? "");
 
     // PROBLEMA RESOLVIDO
     if (formData.problemaResolvido === "sim") {
@@ -171,9 +191,8 @@ export const generateRatPDF = async (formData: RatFormData) => {
     // HORÁRIOS E DATA
     setTextSafe(form, "Horainício", normalizeHour(formData.horaInicio));
     setTextSafe(form, "Horatérmino", normalizeHour(formData.horaTermino));
-
-    const dataFormatada = formData.data ? new Date(formData.data).toLocaleDateString("pt-BR") : "";
-    setTextSafe(form, "DATA", dataFormatada);
+    
+    setTextSafe(form, "DATA", formatDateBr(formData.data));
 
     // CLIENTE
     setTextSafe(form, "NOMELEGÍVEL", formData.clienteNome);
@@ -197,7 +216,7 @@ export const generateRatPDF = async (formData: RatFormData) => {
     const blob = new Blob([new Uint8Array(Array.from(bytes)).buffer], { type: "application/pdf" });
     const url = URL.createObjectURL(blob);
     window.open(url, "_blank");
-
+    
     log("PDF gerado com sucesso!");
     return { url };
   } catch (error) {
