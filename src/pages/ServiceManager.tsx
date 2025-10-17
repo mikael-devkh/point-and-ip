@@ -23,6 +23,7 @@ import {
 import { calculateBilling } from "@/utils/billing-calculator";
 import {
   ActiveCall,
+  MediaEvidence,
   MediaStatus,
   RequiredMediaType,
   getGroupedCalls,
@@ -106,12 +107,15 @@ const ActiveCallCard = ({
   onRemove,
 }: {
   call: ActiveCall;
-  onToggleMedia: (media: RequiredMediaType) => void;
+  onToggleMedia: (
+    media: RequiredMediaType,
+    evidence: MediaEvidence
+  ) => void;
   onComplete: () => void;
   onRemove: () => void;
 }) => {
   const isReadyToComplete = MANDATORY_MEDIA.every(
-    (media) => call.photos[media] === "uploaded"
+    (media) => call.photos[media]?.status === "uploaded"
   );
 
   return (
@@ -151,7 +155,8 @@ const ActiveCallCard = ({
         <div className="space-y-2">
           {REQUIRED_MEDIA_ORDER.map((media) => {
             const { label, icon: Icon, optional } = REQUIRED_MEDIA_LABELS[media];
-            const status = call.photos[media];
+            const evidence = call.photos[media];
+            const status = evidence?.status ?? "missing";
             const isUploaded = status === "uploaded";
 
             return (
@@ -179,7 +184,7 @@ const ActiveCallCard = ({
                 <Button
                   size="sm"
                   variant={isUploaded ? "secondary" : "outline"}
-                  onClick={() => onToggleMedia(media)}
+                  onClick={() => onToggleMedia(media, evidence)}
                   className="gap-2"
                 >
                   {isUploaded ? (
@@ -259,10 +264,7 @@ const ServiceManager = () => {
     [activeCalls]
   );
 
-  const groupedHistory = useMemo(
-    () => getGroupedCalls(calls.filter((call) => call.status !== "open")),
-    [calls]
-  );
+  const groupedHistory = useMemo(() => getGroupedCalls(calls), [calls]);
 
   useEffect(() => {
     if (openCalls.length === 0) {
@@ -307,11 +309,17 @@ const ServiceManager = () => {
   const handleToggleMedia = (
     call: ActiveCall,
     media: RequiredMediaType,
-    currentStatus: MediaStatus
+    currentEvidence: MediaEvidence
   ) => {
     const nextStatus: MediaStatus =
-      currentStatus === "uploaded" ? "missing" : "uploaded";
-    updatePhotoStatus(call.id, media, nextStatus);
+      currentEvidence.status === "uploaded" ? "missing" : "uploaded";
+    const mockDataUrl =
+      nextStatus === "uploaded"
+        ? `data:text/plain;base64,${btoa(
+            `${call.fsa}-${media}-${new Date().toISOString()}`
+          )}`
+        : undefined;
+    updatePhotoStatus(call.id, media, nextStatus, mockDataUrl);
     toast.info(
       nextStatus === "uploaded"
         ? "Mídia marcada como recebida."
@@ -331,7 +339,7 @@ const ServiceManager = () => {
 
   const handleComplete = (call: ActiveCall) => {
     const isReady = MANDATORY_MEDIA.every(
-      (media) => call.photos[media] === "uploaded"
+      (media) => call.photos[media]?.status === "uploaded"
     );
     if (!isReady) {
       toast.error("Finalize todas as evidências obrigatórias antes de encerrar.");
@@ -597,8 +605,12 @@ const ServiceManager = () => {
                           <ActiveCallCard
                             key={call.id}
                             call={call}
-                            onToggleMedia={(media) =>
-                              handleToggleMedia(call, media, call.photos[media])
+                            onToggleMedia={(media, evidence) =>
+                              handleToggleMedia(
+                                call,
+                                media,
+                                evidence ?? { status: "missing" }
+                              )
                             }
                             onComplete={() => handleComplete(call)}
                             onRemove={() => handleRemove(call.id)}

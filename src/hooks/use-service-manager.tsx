@@ -6,6 +6,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import type { ReactNode } from "react";
 
 export type RequiredMediaType =
   | "serial"
@@ -16,13 +17,20 @@ export type RequiredMediaType =
 
 export type MediaStatus = "missing" | "uploaded";
 
+export interface MediaEvidence {
+  status: MediaStatus;
+  dataUrl?: string;
+}
+
+export type MediaChecklist = Record<RequiredMediaType, MediaEvidence>;
+
 export interface ActiveCall {
   id: string;
   fsa: string;
   codigoLoja: string;
   pdv?: string;
   status: "open" | "completed" | "archived";
-  photos: Record<RequiredMediaType, MediaStatus>;
+  photos: MediaChecklist;
   openedAt: string;
   timeStarted: number | null;
   timeTotalServiceMinutes: number;
@@ -51,7 +59,8 @@ interface ServiceManagerContextValue {
   updatePhotoStatus: (
     id: string,
     media: RequiredMediaType,
-    status: MediaStatus
+    status: MediaStatus,
+    dataUrl?: string
   ) => void;
   completeCall: (id: string) => void;
   archiveAllCompleted: () => void;
@@ -65,21 +74,37 @@ const LOCAL_STORAGE_KEY = "service_manager_calls";
 const ServiceManagerContext =
   createContext<ServiceManagerContextValue | undefined>(undefined);
 
-const defaultMediaState: Record<RequiredMediaType, MediaStatus> = {
-  serial: "missing",
-  defect_photo: "missing",
-  solution_video: "missing",
-  workbench_photo: "missing",
-  replacement_serial: "missing",
+const defaultMediaState: MediaChecklist = {
+  serial: { status: "missing" },
+  defect_photo: { status: "missing" },
+  solution_video: { status: "missing" },
+  workbench_photo: { status: "missing" },
+  replacement_serial: { status: "missing" },
 };
 
 const ensureMediaState = (
-  photos?: Partial<Record<RequiredMediaType, MediaStatus>>
-): Record<RequiredMediaType, MediaStatus> => {
-  return {
-    ...defaultMediaState,
-    ...(photos ?? {}),
-  };
+  photos?: Partial<
+    Record<RequiredMediaType, MediaEvidence | MediaStatus | undefined>
+  >
+): MediaChecklist => {
+  const entries = Object.entries(defaultMediaState).map(([mediaKey, defaults]) => {
+    const media = mediaKey as RequiredMediaType;
+    const incoming = photos?.[media];
+
+    if (!incoming) {
+      return [media, { ...defaults }];
+    }
+
+    if (typeof incoming === "string") {
+      return [media, { status: incoming }];
+    }
+
+    const status = incoming.status ?? "missing";
+    const dataUrl = incoming.dataUrl;
+    return [media, { status, dataUrl }];
+  });
+
+  return Object.fromEntries(entries) as MediaChecklist;
 };
 
 const createId = () => {
@@ -94,7 +119,9 @@ const normalizeCall = (raw: ActiveCall): ActiveCall => {
   return {
     ...raw,
     openedAt,
-    photos: ensureMediaState(raw.photos),
+    photos: ensureMediaState(raw.photos as Partial<
+      Record<RequiredMediaType, MediaEvidence | MediaStatus>
+    >),
     timeStarted: raw.timeStarted ?? null,
     timeTotalServiceMinutes: raw.timeTotalServiceMinutes ?? 0,
   };
@@ -115,9 +142,10 @@ const loadStoredCalls = (): ActiveCall[] => {
 };
 
 export const getGroupedCalls = (calls: ActiveCall[]): GroupedCallBucket[] => {
+  const relevantCalls = calls.filter((call) => call.status !== "open");
   const accumulator = new Map<string, Map<string, ActiveCall[]>>();
 
-  calls.forEach((call) => {
+  relevantCalls.forEach((call) => {
     const referenceTime = call.timeStarted ?? Date.parse(call.openedAt);
     const dateKey = Number.isFinite(referenceTime)
       ? new Date(referenceTime).toISOString().slice(0, 10)
@@ -155,7 +183,7 @@ export const getGroupedCalls = (calls: ActiveCall[]): GroupedCallBucket[] => {
 export const ServiceManagerProvider = ({
   children,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
 }) => {
   const [calls, setCalls] = useState<ActiveCall[]>(() => loadStoredCalls());
 
@@ -199,17 +227,31 @@ export const ServiceManagerProvider = ({
   }, []);
 
   const updatePhotoStatus = useCallback(
-    (id: string, media: RequiredMediaType, status: MediaStatus) => {
+    (
+      id: string,
+      media: RequiredMediaType,
+      status: MediaStatus,
+      dataUrl?: string
+    ) => {
       setCalls((prev) =>
         prev.map((call) =>
           call.id === id
-            ? {
-                ...call,
-                photos: {
-                  ...call.photos,
-                  [media]: status,
-                },
-              }
+            ? (() => {
+                const current = call.photos[media] ?? { status: "missing" };
+                return {
+                  ...call,
+                  photos: {
+                    ...call.photos,
+                    [media]: {
+                      status,
+                      dataUrl:
+                        status === "uploaded"
+                          ? dataUrl ?? current.dataUrl
+                          : undefined,
+                    },
+                  },
+                };
+              })()
             : call
         )
       );
