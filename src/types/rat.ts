@@ -7,8 +7,8 @@ export interface RatFormData {
   uf: string;
   nomeSolicitante: string;
   equipamentos: string[];
-  patrimonioNumeroSerie: string;
-  equipComDefeito: string;
+  serial: string;
+  patrimonio: string;
   marca: string;
   modelo: string;
   origemEquipamento: string;
