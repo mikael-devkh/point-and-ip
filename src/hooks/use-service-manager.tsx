@@ -20,6 +20,8 @@ export type MediaStatus = "missing" | "uploaded";
 export interface MediaEvidence {
   status: MediaStatus;
   dataUrl?: string;
+  fileName?: string;
+  mimeType?: string;
 }
 
 export type MediaChecklist = Record<RequiredMediaType, MediaEvidence>;
@@ -60,7 +62,7 @@ interface ServiceManagerContextValue {
     id: string,
     media: RequiredMediaType,
     status: MediaStatus,
-    dataUrl?: string
+    evidence?: Partial<Omit<MediaEvidence, "status">>
   ) => void;
   completeCall: (id: string) => void;
   archiveAllCompleted: () => void;
@@ -84,7 +86,10 @@ const defaultMediaState: MediaChecklist = {
 
 const ensureMediaState = (
   photos?: Partial<
-    Record<RequiredMediaType, MediaEvidence | MediaStatus | undefined>
+    Record<
+      RequiredMediaType,
+      (MediaEvidence & { status?: MediaStatus }) | MediaStatus | undefined
+    >
   >
 ): MediaChecklist => {
   const entries = Object.entries(defaultMediaState).map(([mediaKey, defaults]) => {
@@ -101,7 +106,9 @@ const ensureMediaState = (
 
     const status = incoming.status ?? "missing";
     const dataUrl = incoming.dataUrl;
-    return [media, { status, dataUrl }];
+    const fileName = incoming.fileName;
+    const mimeType = incoming.mimeType;
+    return [media, { status, dataUrl, fileName, mimeType }];
   });
 
   return Object.fromEntries(entries) as MediaChecklist;
@@ -231,7 +238,7 @@ export const ServiceManagerProvider = ({
       id: string,
       media: RequiredMediaType,
       status: MediaStatus,
-      dataUrl?: string
+      evidence?: Partial<Omit<MediaEvidence, "status">>
     ) => {
       setCalls((prev) =>
         prev.map((call) =>
@@ -246,7 +253,15 @@ export const ServiceManagerProvider = ({
                       status,
                       dataUrl:
                         status === "uploaded"
-                          ? dataUrl ?? current.dataUrl
+                          ? evidence?.dataUrl ?? current.dataUrl
+                          : undefined,
+                      fileName:
+                        status === "uploaded"
+                          ? evidence?.fileName ?? current.fileName
+                          : undefined,
+                      mimeType:
+                        status === "uploaded"
+                          ? evidence?.mimeType ?? current.mimeType
                           : undefined,
                     },
                   },

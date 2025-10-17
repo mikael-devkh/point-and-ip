@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import type { ChangeEvent } from "react";
 import { Navigation } from "@/components/Navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -23,28 +24,28 @@ import {
 import { calculateBilling } from "@/utils/billing-calculator";
 import {
   ActiveCall,
-  MediaEvidence,
-  MediaStatus,
   RequiredMediaType,
   getGroupedCalls,
   useServiceManager,
 } from "@/hooks/use-service-manager";
 import { useServiceTimer } from "@/hooks/use-service-timer";
 import { generateZipMock } from "@/utils/zip-generator-mock";
+import { fileToBase64 } from "@/utils/file-conversion";
 import { cn } from "@/lib/utils";
 import {
   Archive,
   Camera,
-  CheckCircle,
   ClipboardList,
   Clock,
   DollarSign,
+  Eye,
   FileDown,
   Pause,
   Play,
   Plus,
   RefreshCcw,
   Trash2,
+  UploadCloud,
   Video,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -74,6 +75,17 @@ const REQUIRED_MEDIA_ORDER: RequiredMediaType[] = [
 
 const MANDATORY_MEDIA: RequiredMediaType[] = REQUIRED_MEDIA_ORDER.slice(0, 4);
 
+const MEDIA_INPUT_CONFIG: Record<
+  RequiredMediaType,
+  { accept: string; capture?: string }
+> = {
+  serial: { accept: "image/*", capture: "environment" },
+  defect_photo: { accept: "image/*", capture: "environment" },
+  solution_video: { accept: "video/*", capture: "environment" },
+  workbench_photo: { accept: "image/*", capture: "environment" },
+  replacement_serial: { accept: "image/*", capture: "environment" },
+};
+
 const statusLabel: Record<ActiveCall["status"], string> = {
   open: "Em andamento",
   completed: "Pronto para faturar",
@@ -102,21 +114,44 @@ const formatDateLabel = (dateIso: string) => {
 
 const ActiveCallCard = ({
   call,
-  onToggleMedia,
+  onUploadMedia,
+  onRemoveMedia,
   onComplete,
   onRemove,
 }: {
   call: ActiveCall;
-  onToggleMedia: (
-    media: RequiredMediaType,
-    evidence: MediaEvidence
-  ) => void;
+  onUploadMedia: (media: RequiredMediaType, file: File) => Promise<void>;
+  onRemoveMedia: (media: RequiredMediaType) => void;
   onComplete: () => void;
   onRemove: () => void;
 }) => {
   const isReadyToComplete = MANDATORY_MEDIA.every(
     (media) => call.photos[media]?.status === "uploaded"
   );
+  const [uploadingMedia, setUploadingMedia] = useState<
+    RequiredMediaType | null
+  >(null);
+
+  const handleFileChange = async (
+    media: RequiredMediaType,
+    event: ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      event.target.value = "";
+      return;
+    }
+
+    setUploadingMedia(media);
+    try {
+      await onUploadMedia(media, file);
+    } catch (error) {
+      console.error("Falha ao anexar mídia", error);
+    } finally {
+      setUploadingMedia((current) => (current === media ? null : current));
+      event.target.value = "";
+    }
+  };
 
   return (
     <Card className="border-border bg-background/70 shadow-sm">
@@ -158,22 +193,25 @@ const ActiveCallCard = ({
             const evidence = call.photos[media];
             const status = evidence?.status ?? "missing";
             const isUploaded = status === "uploaded";
+            const inputId = `${call.id}-${media}`;
+            const config = MEDIA_INPUT_CONFIG[media];
+            const isProcessing = uploadingMedia === media;
 
             return (
               <div
                 key={media}
                 className={cn(
-                  "flex items-center justify-between rounded-md border px-3 py-2",
+                  "flex flex-col gap-2 rounded-md border px-3 py-2 lg:flex-row lg:items-center lg:justify-between",
                   isUploaded
                     ? "border-green-500/60 bg-green-500/10"
-                    : "border-border bg-card"
+                    : "border-border bg-card",
                 )}
               >
                 <div className="flex items-center gap-3 text-sm">
                   <Icon
                     className={cn(
                       "h-4 w-4",
-                      isUploaded ? "text-green-600" : "text-muted-foreground"
+                      isUploaded ? "text-green-600" : "text-muted-foreground",
                     )}
                   />
                   <span className="font-medium text-foreground">{label}</span>
@@ -181,19 +219,57 @@ const ActiveCallCard = ({
                     <span className="text-xs text-muted-foreground">(Opcional)</span>
                   )}
                 </div>
-                <Button
-                  size="sm"
-                  variant={isUploaded ? "secondary" : "outline"}
-                  onClick={() => onToggleMedia(media, evidence)}
-                  className="gap-2"
-                >
-                  {isUploaded ? (
-                    <CheckCircle className="h-4 w-4" />
-                  ) : (
-                    <Camera className="h-4 w-4" />
-                  )}
-                  {isUploaded ? "Marcado" : "Mock Upload"}
-                </Button>
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  <div className="text-xs text-muted-foreground">
+                    {isUploaded && evidence?.fileName
+                      ? `Arquivo: ${evidence.fileName}`
+                      : isUploaded
+                        ? "Arquivo enviado"
+                        : "Pendente"}
+                  </div>
+                  <input
+                    id={inputId}
+                    type="file"
+                    accept={config.accept}
+                    {...(config.capture
+                      ? { capture: config.capture as "user" | "environment" }
+                      : {})}
+                    className="hidden"
+                    onChange={(event) => handleFileChange(media, event)}
+                  />
+                  <Button
+                    asChild
+                    size="sm"
+                    variant={isUploaded ? "secondary" : "outline"}
+                    disabled={isProcessing}
+                    className="gap-2"
+                  >
+                    <label htmlFor={inputId} className="flex cursor-pointer items-center gap-2">
+                      <UploadCloud className="h-4 w-4" />
+                      {isUploaded ? "Reenviar" : "Capturar/Enviar"}
+                    </label>
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => evidence?.dataUrl && window.open(evidence.dataUrl, "_blank")}
+                    disabled={!evidence?.dataUrl}
+                    className="gap-1"
+                  >
+                    <Eye className="h-4 w-4" /> Visualizar
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => onRemoveMedia(media)}
+                    disabled={!isUploaded}
+                    className="gap-1 text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" /> Remover
+                  </Button>
+                </div>
               </div>
             );
           })}
@@ -306,25 +382,29 @@ const ServiceManager = () => {
     setPdv("");
   };
 
-  const handleToggleMedia = (
-    call: ActiveCall,
+  const handleMediaUpload = async (
+    callId: string,
     media: RequiredMediaType,
-    currentEvidence: MediaEvidence
+    file: File,
   ) => {
-    const nextStatus: MediaStatus =
-      currentEvidence.status === "uploaded" ? "missing" : "uploaded";
-    const mockDataUrl =
-      nextStatus === "uploaded"
-        ? `data:text/plain;base64,${btoa(
-            `${call.fsa}-${media}-${new Date().toISOString()}`
-          )}`
-        : undefined;
-    updatePhotoStatus(call.id, media, nextStatus, mockDataUrl);
-    toast.info(
-      nextStatus === "uploaded"
-        ? "Mídia marcada como recebida."
-        : "Mídia marcada como pendente."
-    );
+    try {
+      const dataUrl = await fileToBase64(file);
+      updatePhotoStatus(callId, media, "uploaded", {
+        dataUrl,
+        fileName: file.name || `${media}.${file.type.split("/")[1] ?? "bin"}`,
+        mimeType: file.type || "application/octet-stream",
+      });
+      toast.success(`${REQUIRED_MEDIA_LABELS[media].label} anexada com sucesso.`);
+    } catch (error) {
+      console.error("Erro ao processar arquivo de mídia", error);
+      toast.error("Não foi possível processar o arquivo selecionado.");
+      throw error;
+    }
+  };
+
+  const handleMediaRemove = (callId: string, media: RequiredMediaType) => {
+    updatePhotoStatus(callId, media, "missing");
+    toast.info("Evidência removida.");
   };
 
   const handleRemove = (callId: string) => {
@@ -337,7 +417,7 @@ const ServiceManager = () => {
     toast.success("Chamado removido.");
   };
 
-  const handleComplete = (call: ActiveCall) => {
+  const handleComplete = async (call: ActiveCall) => {
     const isReady = MANDATORY_MEDIA.every(
       (media) => call.photos[media]?.status === "uploaded"
     );
@@ -362,9 +442,9 @@ const ServiceManager = () => {
         call.timeTotalServiceMinutes + Math.max(0, additionalMinutes),
     };
 
-    generateZipMock(finalCall);
+    await generateZipMock(finalCall);
     completeCall(call.id);
-    toast.success("Chamado pronto para faturamento! Exportação mock concluída.");
+    toast.success("Chamado pronto para faturamento! Evidências exportadas.");
   };
 
   const handleArchiveCompleted = () => {
@@ -605,12 +685,11 @@ const ServiceManager = () => {
                           <ActiveCallCard
                             key={call.id}
                             call={call}
-                            onToggleMedia={(media, evidence) =>
-                              handleToggleMedia(
-                                call,
-                                media,
-                                evidence ?? { status: "missing" }
-                              )
+                            onUploadMedia={(media, file) =>
+                              handleMediaUpload(call.id, media, file)
+                            }
+                            onRemoveMedia={(media) =>
+                              handleMediaRemove(call.id, media)
                             }
                             onComplete={() => handleComplete(call)}
                             onRemove={() => handleRemove(call.id)}
