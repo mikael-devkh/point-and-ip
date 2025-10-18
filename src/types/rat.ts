@@ -9,7 +9,6 @@ export interface RatFormData {
   equipamentos: string[];
   serial: string;
   patrimonio: string;
-  equipComDefeito: string;
   marca: string;
   modelo: string;
   origemEquipamento: string;
