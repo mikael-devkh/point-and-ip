@@ -2,91 +2,66 @@ import { useMemo, useState } from "react";
 import { Navigation } from "@/components/Navigation";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, Layers, Plus, RotateCcw, Search, Trash2 } from "lucide-react";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Badge } from "@/components/ui/badge";
+import { FileText, Layers, Search } from "lucide-react";
 import { Procedure } from "@/data/troubleshootingData";
-import { EditableText } from "@/components/EditableText";
-import { ProcedureEditorDialog } from "@/components/ProcedureEditorDialog";
-import {
-  loadEditableProcedures,
-  resetToDefaults,
-  saveProceduresToLocalStorage,
-} from "@/utils/data-editor-utils";
-import { cn } from "@/lib/utils";
+import { loadEditableProcedures, resetToDefaults } from "@/utils/data-editor-utils";
 import { RatTemplatesBrowser } from "@/components/RatTemplatesBrowser";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-interface EditableProcedureCardProps {
-  procedure: Procedure;
-  onSelect: (procedure: Procedure) => void;
-  onUpdate: (procedure: Procedure) => void;
-  onDelete: (id: string) => void;
-}
-
-const EditableProcedureCard = ({
-  procedure,
-  onSelect,
-  onUpdate,
-  onDelete,
-}: EditableProcedureCardProps) => {
-  const handleTitleSave = (newTitle: string) => {
-    onUpdate({ ...procedure, title: newTitle });
-  };
-
-  const handleTagsSave = (newTags: string) => {
-    const tagsArray = newTags
-      .split(",")
-      .map((tag) => tag.trim())
-      .filter(Boolean);
-    onUpdate({ ...procedure, tags: tagsArray });
-  };
-
-  return (
-    <Card className="p-4 bg-background/50 border-border shadow-md transition-colors space-y-2 group">
-      <div className="flex justify-between items-start gap-2">
-        <div className="flex-1 space-y-1">
-          <EditableText
-            initialValue={procedure.title}
-            onSave={handleTitleSave}
-            className="text-lg font-semibold text-foreground cursor-text"
-            placeholder="Título do Procedimento"
-          />
-          <EditableText
-            initialValue={procedure.tags.join(", ")}
-            onSave={handleTagsSave}
-            className="text-xs text-muted-foreground italic cursor-text"
-            placeholder="Tags (separadas por vírgula)"
-          />
-        </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => onDelete(procedure.id)}
-          className="h-8 w-8 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-          title="Remover Procedimento"
+const renderProcedureContent = (content: string) =>
+  content.split("\n").map((line, index) => {
+    const key = `${index}-${line.slice(0, 12)}`;
+    if (line.startsWith("## ")) {
+      return (
+        <h3 key={key} className="text-lg font-semibold text-primary mt-4 first:mt-0">
+          {line.replace("## ", "")}
+        </h3>
+      );
+    }
+    if (line.startsWith("* ")) {
+      return (
+        <p key={key} className="pl-4 text-sm text-foreground/90">
+          • {line.replace("* ", "").trim()}
+        </p>
+      );
+    }
+    if (/^\d+\./.test(line)) {
+      return (
+        <p key={key} className="pl-4 text-sm font-medium text-foreground/90">
+          {line}
+        </p>
+      );
+    }
+    if (line.startsWith("**IMPORTANTE**")) {
+      return (
+        <p
+          key={key}
+          className="bg-yellow-100 dark:bg-yellow-900/40 border border-yellow-300 dark:border-yellow-700 rounded-md px-3 py-2 text-xs font-semibold text-yellow-800 dark:text-yellow-200"
         >
-          <Trash2 className="h-4 w-4" />
-        </Button>
-      </div>
-      <div className="flex justify-between items-end pt-2 border-t border-dashed border-border/70">
-        <Button variant="link" size="sm" onClick={() => onSelect(procedure)} className="p-0 h-auto">
-          Visualizar Detalhes
-        </Button>
-        <ProcedureEditorDialog procedure={procedure} onSave={onUpdate} />
-      </div>
-    </Card>
-  );
-};
+          {line.replace("**IMPORTANTE**:", "").trim()}
+        </p>
+      );
+    }
+    if (!line.trim()) {
+      return <span key={key} className="block h-3" />;
+    }
+    return (
+      <p key={key} className="text-sm text-foreground/90">
+        {line}
+      </p>
+    );
+  });
 
 const SupportCenter = () => {
   const isMobile = useIsMobile();
   const [kbData, setKbData] = useState<Procedure[]>(() => loadEditableProcedures());
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedProcedure, setSelectedProcedure] = useState<Procedure | null>(null);
   const [templatesResetSignal, setTemplatesResetSignal] = useState(0);
   const [activeDesktopTab, setActiveDesktopTab] = useState<"kb" | "templates">("kb");
   const [activeMobileTab, setActiveMobileTab] = useState<"kb" | "templates">("kb");
@@ -105,137 +80,74 @@ const SupportCenter = () => {
     );
   }, [kbData, searchTerm]);
 
-  const handleProcedureUpdate = (updated: Procedure) => {
-    setKbData((previous) => {
-      const index = previous.findIndex((procedure) => procedure.id === updated.id);
-      if (index === -1) {
-        return previous;
-      }
-      const next = [...previous];
-      next[index] = updated;
-      saveProceduresToLocalStorage(next);
-      return next;
-    });
-    if (selectedProcedure?.id === updated.id) {
-      setSelectedProcedure(updated);
-    }
-  };
-
-  const handleProcedureDelete = (id: string) => {
-    if (typeof window !== "undefined" && !window.confirm("Tem certeza que deseja remover este procedimento da base?")) {
-      return;
-    }
-    setKbData((previous) => {
-      const next = previous.filter((procedure) => procedure.id !== id);
-      saveProceduresToLocalStorage(next);
-      if (selectedProcedure?.id === id) {
-        setSelectedProcedure(null);
-      }
-      toast.success("Procedimento removido.");
-      return next;
-    });
-  };
-
-  const handleAddProcedure = () => {
-    const newProcedure: Procedure = {
-      id: `kb-${Date.now()}`,
-      title: "Novo Procedimento",
-      tags: ["novo", "rascunho"],
-      content: "## Conteúdo\n\nAtualize as etapas deste procedimento.",
-    };
-    setKbData((previous) => {
-      const next = [newProcedure, ...previous];
-      saveProceduresToLocalStorage(next);
-      toast.success("Procedimento criado. Atualize o conteúdo pelo editor.");
-      return next;
-    });
-  };
-
-  const handleResetLocalData = () => {
-    if (typeof window !== "undefined" && !window.confirm("Deseja remover todos os dados editados e restaurar os padrões?")) {
-      return;
-    }
+  const handleTemplatesReset = () => {
     const snapshot = resetToDefaults();
     setKbData(snapshot.procedures);
-    setSelectedProcedure(null);
-    setTemplatesResetSignal((value) => value + 1);
+    setTemplatesResetSignal((signal) => signal + 1);
+    toast.info("Biblioteca restaurada para os padrões iniciais.");
   };
 
   const proceduresPanel = (
     <Card className="p-6 space-y-4 shadow-lg">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+      <div className="space-y-2 text-center lg:text-left">
+        <h2 className="text-xl font-bold text-foreground flex items-center gap-2 justify-center lg:justify-start">
           <FileText className="h-5 w-5 text-primary" />
           Base de Conhecimento (Offline)
         </h2>
-        <div className="flex items-center gap-2">
-          <Button onClick={handleAddProcedure} variant="secondary" size="sm" className="gap-2">
-            <Plus className="h-4 w-4" /> Novo Procedimento
-          </Button>
-          <Button onClick={handleResetLocalData} variant="destructive" size="sm" className="gap-2">
-            <RotateCcw className="h-4 w-4" /> Resetar Dados Locais
-          </Button>
-        </div>
+        <p className="text-sm text-muted-foreground">
+          Consulte procedimentos técnicos validados. Este conteúdo é somente leitura para os técnicos em campo.
+        </p>
       </div>
-      <Separator />
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Pesquisar procedimentos por título, conteúdo ou tag"
+          placeholder="Pesquisar por título, palavra-chave ou tag"
           value={searchTerm}
-          onChange={(event) => {
-            setSearchTerm(event.target.value);
-            setSelectedProcedure(null);
-          }}
+          onChange={(event) => setSearchTerm(event.target.value)}
           className="w-full pl-10"
         />
       </div>
-      {selectedProcedure ? (
-        <ScrollArea className="h-[500px] rounded-md border p-4 bg-background">
-          <div className="space-y-4">
-            <div className="flex items-start justify-between border-b pb-3">
-              <h3 className="text-2xl font-bold text-primary">{selectedProcedure.title}</h3>
-              <Button variant="outline" onClick={() => setSelectedProcedure(null)} className="gap-1.5">
-                Voltar
-              </Button>
-            </div>
-            <div className="space-y-2 text-sm leading-relaxed whitespace-pre-wrap text-foreground/90">
-              {selectedProcedure.content}
-            </div>
-            <div className="flex justify-end pt-4">
-              <ProcedureEditorDialog procedure={selectedProcedure} onSave={handleProcedureUpdate} />
-            </div>
+      <p className={cn("text-xs text-muted-foreground", !filteredProcedures.length && "text-center")}> 
+        {filteredProcedures.length
+          ? `Encontrados ${filteredProcedures.length} procedimentos disponíveis.`
+          : "Nenhum procedimento corresponde à pesquisa atual."}
+      </p>
+      <ScrollArea className="h-[520px] rounded-md border bg-background p-4">
+        {filteredProcedures.length ? (
+          <Accordion type="single" collapsible className="space-y-3">
+            {filteredProcedures.map((procedure) => (
+              <AccordionItem key={procedure.id} value={procedure.id} className="border-border rounded-lg">
+                <AccordionTrigger className="text-left">
+                  <div className="flex flex-col gap-2 w-full text-left">
+                    <span className="text-base font-semibold text-foreground">{procedure.title}</span>
+                    <div className="flex flex-wrap gap-1">
+                      {procedure.tags.slice(0, 6).map((tag) => (
+                        <Badge key={tag} variant="secondary" className="text-[11px] uppercase tracking-wide">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="space-y-3 pt-2 text-sm leading-relaxed text-foreground/90">
+                  <div className="space-y-2">{renderProcedureContent(procedure.content)}</div>
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        ) : (
+          <div className="h-full flex items-center justify-center text-sm text-muted-foreground text-center">
+            Ajuste os filtros para visualizar os procedimentos.
           </div>
-        </ScrollArea>
-      ) : (
-        <>
-          <p className={cn("text-sm text-muted-foreground", !filteredProcedures.length && "text-center")}>
-            {filteredProcedures.length
-              ? `Encontrados ${filteredProcedures.length} procedimentos. Clique para editar.`
-              : "Nenhum procedimento encontrado. Utilize o botão de criar para adicionar um novo."}
-          </p>
-          <ScrollArea className="h-[500px] rounded-md border p-4 bg-background">
-            <div className="space-y-3">
-              {filteredProcedures.map((procedure) => (
-                <EditableProcedureCard
-                  key={procedure.id}
-                  procedure={procedure}
-                  onSelect={setSelectedProcedure}
-                  onUpdate={handleProcedureUpdate}
-                  onDelete={handleProcedureDelete}
-                />
-              ))}
-            </div>
-          </ScrollArea>
-        </>
-      )}
+        )}
+      </ScrollArea>
     </Card>
   );
 
   const templatesPanel = (
     <RatTemplatesBrowser
       resetSignal={templatesResetSignal}
-      onRequestGlobalReset={handleResetLocalData}
+      onRequestGlobalReset={handleTemplatesReset}
     />
   );
 
@@ -294,7 +206,7 @@ const SupportCenter = () => {
             </div>
             <h1 className="text-3xl font-bold text-foreground">Centro de Suporte e Biblioteca Técnica</h1>
             <p className="text-muted-foreground">
-              Pesquise procedimentos, mantenha a base de conhecimento offline atualizada e aplique laudos sugeridos diretamente na RAT.
+              Consulte a base de conhecimento validada em campo e, quando necessário, utilize os templates de RAT para acelerar o registro técnico.
             </p>
           </header>
           {renderTabsContent()}

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AssetType, RatTemplate, TemplateStatus } from "@/data/ratTemplatesData";
 import { EditableText } from "@/components/EditableText";
 import { cn } from "@/lib/utils";
@@ -12,6 +13,7 @@ import { loadEditableTemplates, saveTemplatesToLocalStorage } from "@/utils/data
 import { toast } from "sonner";
 import { useRatAutofill } from "@/context/RatAutofillContext";
 import { Layers, Plus, RotateCcw, Trash2, Wand2 } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const assetLabels: Record<AssetType, string> = {
   CPU: "CPU",
@@ -148,11 +150,14 @@ export const RatTemplatesBrowser = ({
     diagnostico: "",
     solucao: "",
   });
+  const isMobile = useIsMobile();
+  const [activeMobileTab, setActiveMobileTab] = useState<"list" | "detail">("list");
 
   useEffect(() => {
     setTemplates(loadEditableTemplates());
     setSelectedTemplateId(null);
     setTemplateDraft({ defeito: "", diagnostico: "", solucao: "" });
+    setActiveMobileTab("list");
   }, [resetSignal]);
 
   const filteredTemplates = useMemo(() => {
@@ -178,6 +183,13 @@ export const RatTemplatesBrowser = ({
       solucao: template.solucao,
     });
   }, [selectedTemplateId, templates]);
+
+  useEffect(() => {
+    if (!isMobile) {
+      return;
+    }
+    setActiveMobileTab(selectedTemplateId ? "detail" : "list");
+  }, [isMobile, selectedTemplateId]);
 
   const updateTemplateList = (updater: (templates: RatTemplate[]) => RatTemplate[]) => {
     setTemplates((previous) => {
@@ -214,6 +226,9 @@ export const RatTemplatesBrowser = ({
     };
     updateTemplateList((previous) => [newTemplate, ...previous]);
     setSelectedTemplateId(newTemplate.id);
+    if (isMobile) {
+      setActiveMobileTab("detail");
+    }
     toast.success("Novo laudo adicionado à biblioteca.");
   };
 
@@ -278,12 +293,153 @@ export const RatTemplatesBrowser = ({
     setTemplates(loadEditableTemplates());
     setSelectedTemplateId(null);
     setTemplateDraft({ defeito: "", diagnostico: "", solucao: "" });
+    setActiveMobileTab("list");
     toast.info("Templates recarregados do padrão.");
   };
 
   const selectedTemplate = selectedTemplateId
     ? templates.find((template) => template.id === selectedTemplateId)
     : null;
+  const listPanel = (
+    <div className="space-y-3">
+      <Label className="text-xs text-muted-foreground">Filtrar por ativo</Label>
+      <Select value={templateFilter} onValueChange={(value) => setTemplateFilter(value as AssetType | "all")}>
+        <SelectTrigger className="w-full">
+          <SelectValue placeholder="Filtrar por ativo" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">Todos os ativos</SelectItem>
+          {Object.entries(assetLabels).map(([value, label]) => (
+            <SelectItem key={value} value={value}>
+              {label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <ScrollArea className="h-[500px] rounded-md border p-4 bg-background">
+        <div className="space-y-3">
+          {filteredTemplates.length ? (
+            filteredTemplates.map((template) => (
+              <TemplateEditorCard
+                key={template.id}
+                template={template}
+                isActive={template.id === selectedTemplateId}
+                onSelect={setSelectedTemplateId}
+                onUpdate={handleTemplateUpdate}
+                onDelete={handleTemplateDelete}
+              />
+            ))
+          ) : (
+            <p className="text-sm text-muted-foreground text-center py-6">
+              Nenhum template com o filtro selecionado.
+            </p>
+          )}
+        </div>
+      </ScrollArea>
+    </div>
+  );
+
+  const detailPanel = selectedTemplate ? (
+    <Card className="p-4 bg-background border-border space-y-4">
+      <div className="space-y-1">
+        <h3 className="text-lg font-semibold text-primary">{selectedTemplate.title}</h3>
+        <p className="text-xs text-muted-foreground">
+          {assetLabels[selectedTemplate.asset]} • {statusLabels[selectedTemplate.status]}
+        </p>
+      </div>
+      <div className="space-y-3">
+        <div className="space-y-2">
+          <Label>Defeito/Problema</Label>
+          <Textarea
+            value={templateDraft.defeito}
+            onChange={(event) =>
+              setTemplateDraft((draft) => ({ ...draft, defeito: event.target.value }))
+            }
+            rows={5}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Diagnóstico/Testes</Label>
+          <Textarea
+            value={templateDraft.diagnostico}
+            onChange={(event) =>
+              setTemplateDraft((draft) => ({ ...draft, diagnostico: event.target.value }))
+            }
+            rows={5}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Solução/Recomendação</Label>
+          <Textarea
+            value={templateDraft.solucao}
+            onChange={(event) =>
+              setTemplateDraft((draft) => ({ ...draft, solucao: event.target.value }))
+            }
+            rows={5}
+          />
+        </div>
+      </div>
+      <div className="flex flex-wrap gap-2 justify-end">
+        {isMobile && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-2"
+            onClick={() => setActiveMobileTab("list")}
+          >
+            Voltar
+          </Button>
+        )}
+        <Button variant="outline" className="gap-2" onClick={handleTemplateDraftSave}>
+          Salvar Laudo
+        </Button>
+        <Button className="gap-2" onClick={handleApplyTemplate}>
+          <Wand2 className="h-4 w-4" /> Aplicar na RAT
+        </Button>
+      </div>
+    </Card>
+  ) : (
+    <div className="h-full rounded-md border border-dashed border-border flex items-center justify-center text-sm text-muted-foreground p-6 text-center">
+      Selecione um template na lista {isMobile ? "para começar a editar." : "ao lado para editar o conteúdo e aplicar na RAT."}
+    </div>
+  );
+
+  if (isMobile) {
+    return (
+      <Card className="p-5 space-y-4 shadow-lg">
+        <div className="space-y-2 text-center">
+          <h2 className="text-xl font-bold text-foreground flex items-center justify-center gap-2">
+            <Layers className="h-5 w-5 text-primary" /> Templates RAT
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Ajuste os textos padrões da RAT e envie o laudo diretamente para o formulário.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <Button onClick={handleAddTemplate} variant="secondary" size="sm" className="gap-2">
+            <Plus className="h-4 w-4" /> Novo Laudo
+          </Button>
+          <Button onClick={handleResetTemplates} variant="outline" size="sm" className="gap-2">
+            <RotateCcw className="h-4 w-4" /> Restaurar Padrões
+          </Button>
+        </div>
+        <Tabs value={activeMobileTab} onValueChange={(value) => setActiveMobileTab(value as "list" | "detail")}> 
+          <TabsList className="grid grid-cols-2">
+            <TabsTrigger value="list">Biblioteca</TabsTrigger>
+            <TabsTrigger value="detail" disabled={!selectedTemplate}>
+              {selectedTemplate ? "Laudo Selecionado" : "Selecione um Laudo"}
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="list" className="space-y-3 pt-4">
+            {listPanel}
+          </TabsContent>
+          <TabsContent value="detail" className="space-y-3 pt-4">
+            {detailPanel}
+          </TabsContent>
+        </Tabs>
+      </Card>
+    );
+  }
 
   return (
     <Card className="p-6 space-y-4 shadow-lg">
@@ -301,98 +457,8 @@ export const RatTemplatesBrowser = ({
         </div>
       </div>
       <div className="grid gap-4 lg:grid-cols-[1fr,1.5fr]">
-        <div className="space-y-3">
-          <Label className="text-xs text-muted-foreground">Filtrar por ativo</Label>
-          <Select value={templateFilter} onValueChange={(value) => setTemplateFilter(value as AssetType | "all")}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Filtrar por ativo" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os ativos</SelectItem>
-              {Object.entries(assetLabels).map(([value, label]) => (
-                <SelectItem key={value} value={value}>
-                  {label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <ScrollArea className="h-[500px] rounded-md border p-4 bg-background">
-            <div className="space-y-3">
-              {filteredTemplates.length ? (
-                filteredTemplates.map((template) => (
-                  <TemplateEditorCard
-                    key={template.id}
-                    template={template}
-                    isActive={template.id === selectedTemplateId}
-                    onSelect={setSelectedTemplateId}
-                    onUpdate={handleTemplateUpdate}
-                    onDelete={handleTemplateDelete}
-                  />
-                ))
-              ) : (
-                <p className="text-sm text-muted-foreground text-center py-6">
-                  Nenhum template com o filtro selecionado.
-                </p>
-              )}
-            </div>
-          </ScrollArea>
-        </div>
-        <div className="space-y-3">
-          {selectedTemplate ? (
-            <Card className="p-4 bg-background border-border space-y-4">
-              <div className="space-y-1">
-                <h3 className="text-lg font-semibold text-primary">{selectedTemplate.title}</h3>
-                <p className="text-xs text-muted-foreground">
-                  {assetLabels[selectedTemplate.asset]} • {statusLabels[selectedTemplate.status]}
-                </p>
-              </div>
-              <div className="space-y-3">
-                <div className="space-y-2">
-                  <Label>Defeito/Problema</Label>
-                  <Textarea
-                    value={templateDraft.defeito}
-                    onChange={(event) =>
-                      setTemplateDraft((draft) => ({ ...draft, defeito: event.target.value }))
-                    }
-                    rows={5}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Diagnóstico/Testes</Label>
-                  <Textarea
-                    value={templateDraft.diagnostico}
-                    onChange={(event) =>
-                      setTemplateDraft((draft) => ({ ...draft, diagnostico: event.target.value }))
-                    }
-                    rows={5}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Solução/Recomendação</Label>
-                  <Textarea
-                    value={templateDraft.solucao}
-                    onChange={(event) =>
-                      setTemplateDraft((draft) => ({ ...draft, solucao: event.target.value }))
-                    }
-                    rows={5}
-                  />
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2 justify-end">
-                <Button variant="outline" className="gap-2" onClick={handleTemplateDraftSave}>
-                  Salvar Laudo
-                </Button>
-                <Button className="gap-2" onClick={handleApplyTemplate}>
-                  <Wand2 className="h-4 w-4" /> Aplicar na RAT
-                </Button>
-              </div>
-            </Card>
-          ) : (
-            <div className="h-full rounded-md border border-dashed border-border flex items-center justify-center text-sm text-muted-foreground p-6 text-center">
-              Selecione um template na lista ao lado para editar o conteúdo e aplicar na RAT.
-            </div>
-          )}
-        </div>
+        {listPanel}
+        <div className="space-y-3">{detailPanel}</div>
       </div>
     </Card>
   );
