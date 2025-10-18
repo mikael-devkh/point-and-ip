@@ -41,7 +41,19 @@ export const Navigation = () => {
     <nav className="fixed top-0 left-0 right-0 bg-card/90 backdrop-blur-sm border-b border-border z-50">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex h-16 items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            <Link
+              to="/"
+              className="flex items-center gap-2 rounded-lg px-2 py-1 transition hover:bg-secondary/60"
+              aria-label="Ir para a página inicial"
+            >
+              <img
+                src="/wt-logo.svg"
+                alt="WT Tecnologia"
+                className="h-9 w-auto md:h-10 drop-shadow-sm"
+              />
+              <span className="hidden text-sm font-semibold text-foreground md:inline">WT Tecnologia</span>
+            </Link>
             <div className="hidden md:flex items-center gap-2">
               {navItems.map((item) => {
                 const Icon = item.icon;
@@ -76,6 +88,16 @@ export const Navigation = () => {
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="w-full sm:max-w-xs p-6 space-y-6">
+                <div className="flex flex-col items-center gap-3">
+                  <Link to="/" onClick={() => setIsOpen(false)} className="rounded-full bg-secondary/70 p-3">
+                    <img
+                      src="/wt-logo.svg"
+                      alt="WT Tecnologia"
+                      className="h-12 w-auto"
+                    />
+                  </Link>
+                  <p className="text-base font-semibold text-foreground">WT Tecnologia</p>
+                </div>
                 <div className="space-y-2">
                   <p className="text-sm font-semibold text-muted-foreground">
                     Navegação
