@@ -114,24 +114,28 @@ export const generateRatPDF = async (formData: RatFormData) => {
     setTextSafe(form, "Marca", formData.marca);
     setTextSafe(form, "Modelo", formData.modelo);
 
-    // ORIGEM DO EQUIPAMENTO - preencher apenas E1, E2, etc
-    if (formData.origemEquipamento) {
-      const origemOption = origemEquipamentoOptions.find(
-        (option) => option.value === formData.origemEquipamento,
-      );
-      if (origemOption) {
-        setTextSafe(form, "Origem", getOrigemCodigo(origemOption.value));
-      }
-    }
+    const possuiTroca =
+      formData.houveTroca === "sim" || (!formData.houveTroca && !!formData.origemEquipamento);
 
-    // DADOS DA TROCA
-    if (formData.numeroSerieTroca) {
-      setTextSafe(form, "SerialNovo", formData.numeroSerieTroca);
-    }
-    setTextSafe(form, "MarcaNovo", formData.marcaTroca);
-    setTextSafe(form, "ModeloNovo", formData.modeloTroca);
-    if (!formData.origemEquipamento) {
-      setTextSafe(form, "Origem", formData.equipNovoRecond);
+    if (possuiTroca) {
+      if (formData.origemEquipamento) {
+        const origemOption = origemEquipamentoOptions.find(
+          (option) => option.value === formData.origemEquipamento,
+        );
+        if (origemOption) {
+          setTextSafe(form, "Origem", getOrigemCodigo(origemOption.value));
+        } else if (formData.equipNovoRecond) {
+          setTextSafe(form, "Origem", formData.equipNovoRecond);
+        }
+      } else if (formData.equipNovoRecond) {
+        setTextSafe(form, "Origem", formData.equipNovoRecond);
+      }
+
+      if (formData.numeroSerieTroca) {
+        setTextSafe(form, "SerialNovo", formData.numeroSerieTroca);
+      }
+      setTextSafe(form, "MarcaNovo", formData.marcaTroca);
+      setTextSafe(form, "ModeloNovo", formData.modeloTroca);
     }
 
     // PEÇAS/CABOS - Removido

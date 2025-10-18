@@ -10,6 +10,7 @@ export interface RatFormData {
   patrimonio: string;
   marca: string;
   modelo: string;
+  houveTroca: string;
   origemEquipamento: string;
   numeroSerieTroca: string;
   equipNovoRecond: string;

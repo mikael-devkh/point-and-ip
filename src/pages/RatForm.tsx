@@ -11,6 +11,13 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Navigation } from "@/components/Navigation";
 import { RatHistoryList, RatHistoryEntry } from "@/components/RatHistoryList";
 import { FileText, Printer, RotateCcw, Wand2 } from "lucide-react";
@@ -32,6 +39,24 @@ const RatForm = () => {
   const [ratHistory, setRatHistory] = useState<RatHistoryEntry[]>([]);
   const { trigger: triggerHaptic } = useHapticFeedback();
   const { autofillData, clearAutofillData } = useRatAutofill();
+
+  const handleHouveTrocaChange = (value: string) => {
+    setFormData((previous) => {
+      if (value === "sim") {
+        return { ...previous, houveTroca: value };
+      }
+
+      return {
+        ...previous,
+        houveTroca: value,
+        origemEquipamento: "",
+        numeroSerieTroca: "",
+        equipNovoRecond: "",
+        marcaTroca: "",
+        modeloTroca: "",
+      };
+    });
+  };
 
   const handleApplyAutofill = () => {
     if (!autofillData.isAvailable) {
@@ -118,7 +143,7 @@ const RatForm = () => {
   };
 
   const handleRatHistorySelect = (entry: RatHistoryEntry) => {
-    const restored = cloneRatFormData(entry.formData);
+    const restored = { ...createEmptyRatFormData(), ...cloneRatFormData(entry.formData) };
     setFormData(restored);
     toast.info("Dados da RAT carregados do histórico.");
     triggerHaptic(50);
@@ -292,26 +317,85 @@ const RatForm = () => {
 
                       <div className="space-y-4">
                         <div className="space-y-2">
-                          <Label>Origem do Equipamento</Label>
+                          <Label>Houve troca de equipamento?</Label>
                           <RadioGroup
-                            value={formData.origemEquipamento}
-                            onValueChange={(value) => setFormData({ ...formData, origemEquipamento: value })}
+                            value={formData.houveTroca}
+                            onValueChange={handleHouveTrocaChange}
                           >
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                              {origemEquipamentoOptions.map((option) => (
-                                <div
-                                  key={option.value}
-                                  className="flex items-center gap-3 rounded-md border border-input bg-background px-3 py-3"
-                                >
-                                  <RadioGroupItem value={option.value} id={`origem-${option.value}`} />
-                                  <Label htmlFor={`origem-${option.value}`} className="cursor-pointer text-sm">
-                                    {option.label}
-                                  </Label>
-                                </div>
-                              ))}
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+                              <div className="flex items-center gap-2">
+                                <RadioGroupItem value="sim" id="houve-troca-sim" />
+                                <Label htmlFor="houve-troca-sim" className="cursor-pointer">
+                                  Sim
+                                </Label>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <RadioGroupItem value="nao" id="houve-troca-nao" />
+                                <Label htmlFor="houve-troca-nao" className="cursor-pointer">
+                                  Não
+                                </Label>
+                              </div>
                             </div>
                           </RadioGroup>
                         </div>
+
+                        {formData.houveTroca === "sim" && (
+                          <div className="space-y-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="origemEquipamento">Origem do equipamento</Label>
+                              <Select
+                                value={formData.origemEquipamento}
+                                onValueChange={(value) => setFormData({ ...formData, origemEquipamento: value })}
+                              >
+                                <SelectTrigger id="origemEquipamento">
+                                  <SelectValue placeholder="Selecione a origem" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {origemEquipamentoOptions.map((option) => (
+                                    <SelectItem key={option.value} value={option.value}>
+                                      {option.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="numeroSerieTroca">Número de série (novo equipamento)</Label>
+                                <Input
+                                  id="numeroSerieTroca"
+                                  value={formData.numeroSerieTroca}
+                                  onChange={(e) => setFormData({ ...formData, numeroSerieTroca: e.target.value })}
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="equipNovoRecond">Equipamento novo/recondicionado</Label>
+                                <Input
+                                  id="equipNovoRecond"
+                                  value={formData.equipNovoRecond}
+                                  onChange={(e) => setFormData({ ...formData, equipNovoRecond: e.target.value })}
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="marcaTroca">Marca do novo equipamento</Label>
+                                <Input
+                                  id="marcaTroca"
+                                  value={formData.marcaTroca}
+                                  onChange={(e) => setFormData({ ...formData, marcaTroca: e.target.value })}
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="modeloTroca">Modelo do novo equipamento</Label>
+                                <Input
+                                  id="modeloTroca"
+                                  value={formData.modeloTroca}
+                                  onChange={(e) => setFormData({ ...formData, modeloTroca: e.target.value })}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
 
                         <div className="space-y-2">
                           <Label>Mau Uso?</Label>
