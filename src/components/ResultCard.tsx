@@ -1,5 +1,6 @@
+import { useEffect, useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
-import { Copy } from "lucide-react";
+import { Check, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -15,20 +16,39 @@ interface ResultCardProps {
   dns2: string;
 }
 
-export const ResultCard = ({ 
-  nomeLoja, 
-  tipo, 
+export const ResultCard = ({
+  nomeLoja,
+  tipo,
   numeroPDV,
-  ip, 
-  mascara, 
-  gateway, 
-  broadcast, 
-  dns1, 
-  dns2 
+  ip,
+  mascara,
+  gateway,
+  broadcast,
+  dns1,
+  dns2
 }: ResultCardProps) => {
+  const [copiedStates, setCopiedStates] = useState<Record<string, boolean>>({});
+  const copyTimeouts = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+  useEffect(() => {
+    return () => {
+      Object.values(copyTimeouts.current).forEach((timeoutId) => clearTimeout(timeoutId));
+    };
+  }, []);
+
   const handleCopy = (value: string, label: string) => {
     navigator.clipboard.writeText(value);
     toast.success(`${label} copiado!`);
+    setCopiedStates((prev) => ({ ...prev, [label]: true }));
+
+    if (copyTimeouts.current[label]) {
+      clearTimeout(copyTimeouts.current[label]);
+    }
+
+    copyTimeouts.current[label] = setTimeout(() => {
+      setCopiedStates((prev) => ({ ...prev, [label]: false }));
+      delete copyTimeouts.current[label];
+    }, 2000);
   };
 
   const InfoRow = ({ label, value }: { label: string; value: string }) => (
@@ -42,7 +62,11 @@ export const ResultCard = ({
           variant="ghost"
           className="h-8 w-8 hover:bg-secondary"
         >
-          <Copy className="h-3.5 w-3.5 text-muted-foreground" />
+          {copiedStates[label] ? (
+            <Check className="h-3.5 w-3.5 text-primary" />
+          ) : (
+            <Copy className="h-3.5 w-3.5 text-muted-foreground" />
+          )}
         </Button>
       </div>
     </div>
