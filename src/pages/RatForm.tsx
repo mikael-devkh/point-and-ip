@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Accordion,
@@ -18,55 +17,17 @@ import { FileText, Printer, RotateCcw, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { generateRatPDF } from "@/utils/ratPdfGenerator";
 import { RatFormData } from "@/types/rat";
-import {
-  cloneRatFormData,
-  createEmptyRatFormData,
-  equipamentoOptions,
-  origemEquipamentoOptions,
-  pecasCabosOptions,
-  pecasImpressoraOptions,
-} from "@/data/ratOptions";
+import { cloneRatFormData, createEmptyRatFormData, origemEquipamentoOptions } from "@/data/ratOptions";
 import { useHapticFeedback } from "@/hooks/use-haptic-feedback";
 import { useRatAutofill } from "@/context/RatAutofillContext";
-
-const COMMON_PROBLEMS = [
-  "Não liga",
-  "Papel encravado",
-  "Ecrã azul",
-  "Não dá imagem",
-  "Lentidão excessiva",
-];
-
-const extractCommonProblems = (text: string) => {
-  const normalizedLines = text
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean);
-
-  return COMMON_PROBLEMS.filter((problem) => normalizedLines.includes(`- ${problem}`));
-};
-
-const arraysEqual = (a: string[], b: string[]) =>
-  a.length === b.length && a.every((value, index) => value === b[index]);
 
 const RAT_HISTORY_STORAGE_KEY = "ratHistory";
 
 const RatForm = () => {
   const [formData, setFormData] = useState<RatFormData>(() => createEmptyRatFormData());
-  const [selectedProblems, setSelectedProblems] = useState<string[]>([]);
   const [ratHistory, setRatHistory] = useState<RatHistoryEntry[]>([]);
   const { trigger: triggerHaptic } = useHapticFeedback();
   const { autofillData, clearAutofillData } = useRatAutofill();
-
-  const toggleListValue = (list: string[], value: string, checked: boolean) => {
-    if (checked) {
-      return Array.from(new Set([...list, value]));
-    }
-    return list.filter((item) => item !== value);
-  };
-
-  const buildCheckboxId = (prefix: string, value: string) =>
-    `${prefix}-${value}`.replace(/[^a-zA-Z0-9-_]/g, "-");
 
   const handleApplyAutofill = () => {
     if (!autofillData.isAvailable) {
@@ -76,10 +37,9 @@ const RatForm = () => {
     setFormData((previous) => ({
       ...previous,
       defeitoProblema: autofillData.defeito,
-      diagnosticoTestesRealizados: autofillData.diagnostico,
-      solucaoProblema: autofillData.solucao,
+      diagnosticoTestes: autofillData.diagnostico,
+      solucao: autofillData.solucao,
     }));
-    setSelectedProblems(extractCommonProblems(autofillData.defeito));
     toast.success(
       autofillData.title
         ? `Laudo "${autofillData.title}" aplicado ao formulário.`
@@ -91,42 +51,8 @@ const RatForm = () => {
 
   const handleResetForm = () => {
     setFormData(createEmptyRatFormData());
-    setSelectedProblems([]);
     toast.info("Formulário limpo.");
     triggerHaptic(40);
-  };
-
-  const handleCommonProblemToggle = (problem: string, isChecked: boolean) => {
-    setSelectedProblems((prev) => {
-      if (isChecked) {
-        if (prev.includes(problem)) {
-          return prev;
-        }
-        const updated = [...prev, problem];
-        return COMMON_PROBLEMS.filter((item) => updated.includes(item));
-      }
-      const remaining = prev.filter((item) => item !== problem);
-      return COMMON_PROBLEMS.filter((item) => remaining.includes(item));
-    });
-
-    setFormData((prev) => {
-      const bullet = `- ${problem}`;
-      const lines = prev.defeitoProblema ? prev.defeitoProblema.split("\n") : [];
-
-      if (isChecked) {
-        if (lines.some((line) => line.trim() === bullet)) {
-          return prev;
-        }
-
-        const trimmed = prev.defeitoProblema.trimEnd();
-        const nextText = trimmed ? `${trimmed}\n${bullet}` : bullet;
-        return { ...prev, defeitoProblema: nextText };
-      }
-
-      const filtered = lines.filter((line) => line.trim() !== bullet);
-      const updated = filtered.join("\n").trim();
-      return { ...prev, defeitoProblema: updated };
-    });
   };
 
   useEffect(() => {
@@ -161,11 +87,6 @@ const RatForm = () => {
       console.error("Não foi possível salvar o histórico de RAT:", error);
     }
   }, [ratHistory]);
-
-  useEffect(() => {
-    const derivedProblems = extractCommonProblems(formData.defeitoProblema);
-    setSelectedProblems((prev) => (arraysEqual(prev, derivedProblems) ? prev : derivedProblems));
-  }, [formData.defeitoProblema]);
 
   const handleGeneratePDF = async () => {
     try {
@@ -388,77 +309,6 @@ const RatForm = () => {
                           </RadioGroup>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label>Equipamento</Label>
-                            <RadioGroup
-                              value={formData.equipamento}
-                              onValueChange={(value) => setFormData({ ...formData, equipamento: value })}
-                            >
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                {equipamentoOptions.map((option) => (
-                                  <div
-                                    key={option.value}
-                                    className="flex items-center space-x-2 rounded-md border border-input bg-background px-3 py-2"
-                                  >
-                                    <RadioGroupItem value={option.value} id={`equip-${option.value}`} />
-                                    <Label htmlFor={`equip-${option.value}`} className="cursor-pointer text-sm">
-                                      {option.label}
-                                    </Label>
-                                  </div>
-                                ))}
-                              </div>
-                            </RadioGroup>
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label>Peças/Cabos Substituídos</Label>
-                            <RadioGroup
-                              value={formData.pecasCabos}
-                              onValueChange={(value) => setFormData({ ...formData, pecasCabos: value })}
-                            >
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                {pecasCabosOptions.map((option) => (
-                                  <div
-                                    key={option.value}
-                                    className="flex items-center space-x-2 rounded-md border border-input bg-background px-3 py-2"
-                                  >
-                                    <RadioGroupItem value={option.value} id={`pecas-${option.value}`} />
-                                    <Label htmlFor={`pecas-${option.value}`} className="cursor-pointer text-sm">
-                                      {option.label}
-                                    </Label>
-                                  </div>
-                                ))}
-                              </div>
-                            </RadioGroup>
-                          </div>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label>Peças da Impressora Substituídas</Label>
-                          <RadioGroup
-                            value={formData.pecasImpressora}
-                            onValueChange={(value) => setFormData({ ...formData, pecasImpressora: value })}
-                          >
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                              {pecasImpressoraOptions.map((option) => (
-                                <div
-                                  key={option.value}
-                                  className="flex items-center space-x-2 rounded-md border border-input bg-background px-3 py-2"
-                                >
-                                  <RadioGroupItem value={option.value} id={`pecas-impressora-${option.value}`} />
-                                  <Label
-                                    htmlFor={`pecas-impressora-${option.value}`}
-                                    className="cursor-pointer text-sm"
-                                  >
-                                    {option.label}
-                                  </Label>
-                                </div>
-                              ))}
-                            </div>
-                          </RadioGroup>
-                        </div>
-
                         <div className="space-y-2">
                           <Label>Mau Uso?</Label>
                           <RadioGroup
@@ -502,29 +352,6 @@ const RatForm = () => {
                   </AccordionTrigger>
                   <AccordionContent>
                     <div className="space-y-6 pt-2">
-                      <div className="space-y-3">
-                        <Label className="text-foreground font-medium">Problemas Comuns</Label>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                          {COMMON_PROBLEMS.map((problem) => {
-                            const checkboxId = buildCheckboxId("problema-comum", problem);
-                            return (
-                              <div key={problem} className="flex items-center space-x-2">
-                                <Checkbox
-                                  id={checkboxId}
-                                  checked={selectedProblems.includes(problem)}
-                                  onCheckedChange={(checked) =>
-                                    handleCommonProblemToggle(problem, checked === true)
-                                  }
-                                />
-                                <Label htmlFor={checkboxId} className="text-sm leading-none cursor-pointer">
-                                  {problem}
-                                </Label>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-
                       <div className="space-y-2">
                         <Label htmlFor="defeitoProblema">Defeito/Problema</Label>
                         <Textarea

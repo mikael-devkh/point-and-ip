@@ -6,7 +6,6 @@ export interface RatFormData {
   cidade: string;
   uf: string;
   nomeSolicitante: string;
-  equipamentos: string[];
   serial: string;
   patrimonio: string;
   marca: string;
@@ -16,8 +15,6 @@ export interface RatFormData {
   equipNovoRecond: string;
   marcaTroca: string;
   modeloTroca: string;
-  pecasCabos: string[];
-  pecasImpressora: string[];
   mauUso: string;
   observacoesPecas: string;
   defeitoProblema: string;

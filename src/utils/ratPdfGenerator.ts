@@ -8,12 +8,7 @@ import {
 } from "pdf-lib";
 import ratTemplateUrl from "@/assets/rat-template.pdf?url";
 import { RatFormData } from "@/types/rat";
-import {
-  equipamentoOptions,
-  origemEquipamentoOptions,
-  pecasCabosOptions,
-  pecasImpressoraOptions,
-} from "@/data/ratOptions";
+import { origemEquipamentoOptions } from "@/data/ratOptions";
 
 const log = (...args: any[]) => console.debug("[RAT]", ...args);
 
