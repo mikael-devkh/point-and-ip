@@ -11,21 +11,6 @@ export interface RatCheckboxOption {
   pdfPosition: PdfPosition;
 }
 
-export const equipamentoOptions: RatCheckboxOption[] = [
-  { value: "01-PDV-Teclado", label: "01 - PDV - Teclado", pdfPosition: { x: 40, yFromTop: 234 } },
-  { value: "02-PDV-Scanner", label: "02 - PDV - Scanner", pdfPosition: { x: 40, yFromTop: 246 } },
-  { value: "03-PDV-Impressora", label: "03 - PDV - Impressora", pdfPosition: { x: 245, yFromTop: 234 } },
-  { value: "04-PDV-Monitor", label: "04 - PDV - Monitor", pdfPosition: { x: 40, yFromTop: 258 } },
-  { value: "05-PDV-Gaveta", label: "05 - PDV - Gaveta", pdfPosition: { x: 40, yFromTop: 270 } },
-  { value: "06-PDV-CPU", label: "06 - PDV - CPU", pdfPosition: { x: 40, yFromTop: 282 } },
-  { value: "07-Desktop-Gerente", label: "07 - Desktop - Gerente", pdfPosition: { x: 245, yFromTop: 246 } },
-  { value: "08-Desktop +Aqui", label: "08 - Desktop +Aqui", pdfPosition: { x: 245, yFromTop: 258 } },
-  { value: "09-Desktop-Almox.", label: "09 - Desktop - Almox.", pdfPosition: { x: 245, yFromTop: 270 } },
-  { value: "10-Desktop-Tesouraria", label: "10 - Desktop - Tesouraria", pdfPosition: { x: 245, yFromTop: 282 } },
-  { value: "11-Impressora-Zebra/Printronix", label: "11 - Impressora Zebra/Printronix", pdfPosition: { x: 245, yFromTop: 294 } },
-  { value: "12-Outros", label: "12 - Outros", pdfPosition: { x: 245, yFromTop: 306 } },
-];
-
 export const origemEquipamentoOptions: RatCheckboxOption[] = [
   { value: "E1-Novo Delfia", label: "E1 - Novo Delfia", pdfPosition: { x: 455, yFromTop: 282 } },
   { value: "E2-Novo Parceiro", label: "E2 - Novo Parceiro", pdfPosition: { x: 555, yFromTop: 282 } },
@@ -39,52 +24,6 @@ export const origemEquipamentoOptions: RatCheckboxOption[] = [
   { value: "E10-Garantia Parceiro", label: "E10 - Garantia Parceiro", pdfPosition: { x: 555, yFromTop: 306 } },
 ];
 
-export const pecasCabosOptions: RatCheckboxOption[] = [
-  { value: "13-CPU/Desktop - HD/SSD", label: "13 - CPU/Desktop - HD/SSD", pdfPosition: { x: 40, yFromTop: 390 } },
-  { value: "14-CPU/Desktop - Memória", label: "14 - CPU/Desktop - Memória", pdfPosition: { x: 40, yFromTop: 402 } },
-  { value: "15-CPU/Desktop - Fonte Interna", label: "15 - CPU/Desktop - Fonte Interna", pdfPosition: { x: 40, yFromTop: 414 } },
-  { value: "16-CPU/Desktop - Fonte Externa", label: "16 - CPU/Desktop - Fonte Externa", pdfPosition: { x: 40, yFromTop: 426 } },
-  { value: "17-CPU/Desktop - Mother Board", label: "17 - CPU/Desktop - Mother Board", pdfPosition: { x: 40, yFromTop: 438 } },
-  { value: "18-CPU/Desktop - Botão Power", label: "18 - CPU/Desktop - Botão Power", pdfPosition: { x: 40, yFromTop: 450 } },
-  { value: "19-CPU/Desktop - Gabinete", label: "19 - CPU/Desktop - Gabinete", pdfPosition: { x: 40, yFromTop: 462 } },
-  { value: "20-CPU/Desktop - Teclado ABNT", label: "20 - CPU/Desktop - Teclado ABNT", pdfPosition: { x: 40, yFromTop: 474 } },
-  { value: "21-CPU/Desktop - Bateria CMOS", label: "21 - CPU/Desktop - Bateria CMOS", pdfPosition: { x: 40, yFromTop: 486 } },
-  { value: "22-Imp-PDV - Fonte", label: "22 - Imp. PDV - Fonte", pdfPosition: { x: 40, yFromTop: 498 } },
-  { value: "23-Imp-PDV - Placa Lógica", label: "23 - Imp. PDV - Placa Lógica", pdfPosition: { x: 40, yFromTop: 510 } },
-  { value: "24-Imp-PDV - Tampa", label: "24 - Imp. PDV - Tampa", pdfPosition: { x: 40, yFromTop: 522 } },
-  { value: "25-Gaveta - Miolo", label: "25 - Gaveta - Miolo", pdfPosition: { x: 40, yFromTop: 534 } },
-  { value: "26-Gaveta - Solenoide", label: "26 - Gaveta - Solenoide", pdfPosition: { x: 218, yFromTop: 390 } },
-  { value: "27-Gaveta - Miolo", label: "27 - Gaveta - Miolo", pdfPosition: { x: 218, yFromTop: 402 } },
-  { value: "28-Gaveta - Chave", label: "28 - Gaveta - Chave", pdfPosition: { x: 218, yFromTop: 414 } },
-  { value: "29-Gaveta - Cabo RJ", label: "29 - Gaveta - Cabo RJ", pdfPosition: { x: 218, yFromTop: 426 } },
-  { value: "30-Monitor - Base", label: "30 - Monitor - Base", pdfPosition: { x: 218, yFromTop: 438 } },
-  { value: "31-Monitor - Fonte", label: "31 - Monitor - Fonte", pdfPosition: { x: 218, yFromTop: 450 } },
-  { value: "32-Cabo - Scanner", label: "32 - Cabo - Scanner", pdfPosition: { x: 218, yFromTop: 462 } },
-  { value: "33-Cabo - Teclado", label: "33 - Cabo - Teclado", pdfPosition: { x: 218, yFromTop: 474 } },
-  { value: "34-Cabo - Força", label: "34 - Cabo - Força", pdfPosition: { x: 218, yFromTop: 486 } },
-  { value: "35-Cabo - VGA/HDMI", label: "35 - Cabo - VGA/HDMI", pdfPosition: { x: 218, yFromTop: 498 } },
-  { value: "36-Cabo - USB", label: "36 - Cabo - USB", pdfPosition: { x: 218, yFromTop: 510 } },
-  { value: "37-Cabo - Sata", label: "37 - Cabo - Sata", pdfPosition: { x: 218, yFromTop: 522 } },
-  { value: "38-Outros", label: "38 - Outros", pdfPosition: { x: 218, yFromTop: 534 } },
-];
-
-export const pecasImpressoraOptions: RatCheckboxOption[] = [
-  { value: "39-Cabeça Imp.", label: "39 - Cabeça Impressora", pdfPosition: { x: 455, yFromTop: 390 } },
-  { value: "40-Suporte Cabeça", label: "40 - Suporte Cabeça", pdfPosition: { x: 455, yFromTop: 402 } },
-  { value: "41-Platen", label: "41 - Platen", pdfPosition: { x: 455, yFromTop: 414 } },
-  { value: "42-Sensor Cabeça", label: "42 - Sensor Cabeça", pdfPosition: { x: 455, yFromTop: 426 } },
-  { value: "43-Sensor Etiqueta", label: "43 - Sensor Etiqueta", pdfPosition: { x: 455, yFromTop: 438 } },
-  { value: "44-Placa Lógica", label: "44 - Placa Lógica", pdfPosition: { x: 455, yFromTop: 450 } },
-  { value: "45-Placa Fonte", label: "45 - Placa Fonte", pdfPosition: { x: 455, yFromTop: 462 } },
-  { value: "46-Fonte Externa", label: "46 - Fonte Externa", pdfPosition: { x: 455, yFromTop: 474 } },
-  { value: "47-Trava Cabeça", label: "47 - Trava Cabeça", pdfPosition: { x: 455, yFromTop: 486 } },
-  { value: "48-Kit Engrenagens", label: "48 - Kit Engrenagens", pdfPosition: { x: 455, yFromTop: 498 } },
-  { value: "49-Correia", label: "49 - Correia", pdfPosition: { x: 455, yFromTop: 510 } },
-  { value: "50-Painel", label: "50 - Painel", pdfPosition: { x: 455, yFromTop: 522 } },
-  { value: "51-Print Server", label: "51 - Print Server", pdfPosition: { x: 455, yFromTop: 534 } },
-  { value: "52-Outros", label: "52 - Outros", pdfPosition: { x: 455, yFromTop: 546 } },
-];
-
 export const createEmptyRatFormData = (): RatFormData => ({
   codigoLoja: "",
   pdv: "",
@@ -93,10 +32,8 @@ export const createEmptyRatFormData = (): RatFormData => ({
   cidade: "",
   uf: "",
   nomeSolicitante: "",
-  equipamentos: [],
   serial: "",
   patrimonio: "",
-  equipComDefeito: "",
   marca: "",
   modelo: "",
   origemEquipamento: "",
@@ -104,8 +41,6 @@ export const createEmptyRatFormData = (): RatFormData => ({
   equipNovoRecond: "",
   marcaTroca: "",
   modeloTroca: "",
-  pecasCabos: [],
-  pecasImpressora: [],
   mauUso: "",
   observacoesPecas: "",
   defeitoProblema: "",
@@ -133,10 +68,8 @@ export const sampleRatFormData: RatFormData = {
   cidade: "São Paulo",
   uf: "SP",
   nomeSolicitante: "Maria Souza",
-  equipamentos: ["01-PDV-Teclado", "03-PDV-Impressora", "06-PDV-CPU"],
   serial: "SN123456",
   patrimonio: "ATV123456",
-  equipComDefeito: "Impressora PDV",
   marca: "Epson",
   modelo: "TM-T20",
   origemEquipamento: "E1-Novo Delfia",
@@ -144,8 +77,6 @@ export const sampleRatFormData: RatFormData = {
   equipNovoRecond: "Novo",
   marcaTroca: "Epson",
   modeloTroca: "TM-T20 II",
-  pecasCabos: ["22-Imp-PDV - Fonte", "36-Cabo - USB"],
-  pecasImpressora: ["44-Placa Lógica"],
   mauUso: "nao",
   observacoesPecas: "Fonte substituída preventivamente.",
   defeitoProblema: "Impressora não ligava no início do expediente.",
@@ -167,7 +98,4 @@ export const sampleRatFormData: RatFormData = {
 
 export const cloneRatFormData = (data: RatFormData): RatFormData => ({
   ...data,
-  equipamentos: [...data.equipamentos],
-  pecasCabos: [...data.pecasCabos],
-  pecasImpressora: [...data.pecasImpressora],
 });
