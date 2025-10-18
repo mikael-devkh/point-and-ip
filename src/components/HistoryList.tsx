@@ -47,16 +47,16 @@ export const HistoryList = ({ history, onSelect, onClear }: HistoryListProps) =>
           <Card
             key={`${item.timestamp}-${index}`}
             onClick={() => onSelect(item)}
-            className="p-4 bg-secondary border-border cursor-pointer hover:bg-secondary/80 transition-colors"
+            className="p-3 bg-secondary border-border cursor-pointer hover:bg-secondary/80 transition-colors sm:p-4"
           >
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div className="space-y-1">
                 <p className="font-medium text-foreground">
                   {item.nomeLoja} - {item.tipo} {item.numeroPDV ? `#${item.numeroPDV}` : ""}
                 </p>
                 <p className="text-sm text-primary">{item.ip}</p>
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground sm:text-right">
                 {new Date(item.timestamp).toLocaleDateString("pt-BR")}
               </p>
             </div>

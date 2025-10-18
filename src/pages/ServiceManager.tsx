@@ -160,9 +160,9 @@ const ActiveCallCard = ({
 
   return (
     <Card className="border-border bg-background/70 shadow-sm">
-      <CardHeader className="space-y-1">
+      <CardHeader className="space-y-1 p-4 sm:p-6">
         <div className="flex items-center justify-between gap-2">
-          <CardTitle className="text-lg font-semibold text-foreground">
+          <CardTitle className="text-base font-semibold text-foreground sm:text-lg">
             FSA #{call.fsa}
           </CardTitle>
           <Badge
@@ -177,9 +177,9 @@ const ActiveCallCard = ({
           {call.pdv ? ` • PDV ${call.pdv}` : ""}
         </p>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="rounded-lg border border-dashed border-primary/30 bg-primary/5 p-3 text-sm text-foreground">
-          <div className="flex items-center gap-2">
+      <CardContent className="space-y-4 p-4 pt-0 sm:p-6 sm:pt-0">
+        <div className="rounded-lg border border-dashed border-primary/30 bg-primary/5 p-3 text-sm text-foreground sm:p-4">
+          <div className="flex flex-wrap items-center gap-2">
             <Clock className="h-4 w-4 text-primary" />
             <span className="font-medium">
               Tempo registrado: {formatMinutes(storeMinutes)}
@@ -206,13 +206,13 @@ const ActiveCallCard = ({
               <div
                 key={media}
                 className={cn(
-                  "flex flex-col gap-2 rounded-md border px-3 py-2 lg:flex-row lg:items-center lg:justify-between",
+                  "flex flex-col gap-3 rounded-md border px-3 py-3 sm:gap-2 sm:px-4 sm:py-3 lg:flex-row lg:items-center lg:justify-between",
                   isUploaded
                     ? "border-green-500/60 bg-green-500/10"
                     : "border-border bg-card",
                 )}
               >
-                <div className="flex items-center gap-3 text-sm">
+                <div className="flex flex-col gap-1 text-sm sm:flex-row sm:items-center sm:gap-3">
                   <Icon
                     className={cn(
                       "h-4 w-4",
@@ -224,8 +224,8 @@ const ActiveCallCard = ({
                     <span className="text-xs text-muted-foreground">(Opcional)</span>
                   )}
                 </div>
-                <div className="flex flex-wrap items-center justify-end gap-2">
-                  <div className="text-xs text-muted-foreground">
+                <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+                  <div className="text-xs text-muted-foreground text-left sm:text-right">
                     {isUploaded && evidence?.fileName
                       ? `Arquivo: ${evidence.fileName}`
                       : isUploaded
@@ -247,9 +247,12 @@ const ActiveCallCard = ({
                     size="sm"
                     variant={isUploaded ? "secondary" : "outline"}
                     disabled={isProcessing}
-                    className="gap-2"
+                    className="gap-2 w-full justify-center sm:w-auto"
                   >
-                    <label htmlFor={inputId} className="flex cursor-pointer items-center gap-2">
+                    <label
+                      htmlFor={inputId}
+                      className="flex w-full cursor-pointer items-center justify-center gap-2"
+                    >
                       <UploadCloud className="h-4 w-4" />
                       {isUploaded ? "Reenviar" : "Capturar/Enviar"}
                     </label>
@@ -260,7 +263,7 @@ const ActiveCallCard = ({
                     variant="ghost"
                     onClick={() => evidence?.dataUrl && window.open(evidence.dataUrl, "_blank")}
                     disabled={!evidence?.dataUrl}
-                    className="gap-1"
+                    className="gap-1 w-full justify-center sm:w-auto"
                   >
                     <Eye className="h-4 w-4" /> Visualizar
                   </Button>
@@ -270,7 +273,7 @@ const ActiveCallCard = ({
                     variant="ghost"
                     onClick={() => onRemoveMedia(media)}
                     disabled={!isUploaded}
-                    className="gap-1 text-destructive"
+                    className="gap-1 text-destructive w-full justify-center sm:w-auto"
                   >
                     <Trash2 className="h-4 w-4" /> Remover
                   </Button>
@@ -280,11 +283,11 @@ const ActiveCallCard = ({
           })}
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
+        <div className="flex flex-col gap-2 pt-2 sm:flex-row sm:items-center sm:justify-between">
           <Button
             onClick={onComplete}
             disabled={!isReadyToComplete || call.status !== "open"}
-            className="gap-2"
+            className="gap-2 w-full justify-center sm:w-auto"
           >
             <FileDown className="h-4 w-4" /> Exportar ZIP e Encerrar
           </Button>
@@ -292,7 +295,7 @@ const ActiveCallCard = ({
             variant="ghost"
             size="sm"
             onClick={onRemove}
-            className="text-destructive gap-2"
+            className="text-destructive gap-2 w-full justify-center sm:w-auto"
           >
             <Trash2 className="h-4 w-4" /> Remover
           </Button>
@@ -538,7 +541,7 @@ const ServiceManager = () => {
                 <ClipboardList className="h-8 w-8 text-primary" />
               </div>
             </div>
-            <h1 className="text-3xl font-bold text-foreground">
+            <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
               Gestão de Atendimento em Campo
             </h1>
             <p className="text-muted-foreground">
@@ -550,12 +553,12 @@ const ServiceManager = () => {
           <div className="grid gap-6 lg:grid-cols-3">
             <div className="space-y-4">
               <Card className="border-border bg-background/80 shadow-sm">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-primary">
+                <CardHeader className="p-4 sm:p-6">
+                  <CardTitle className="flex items-center gap-2 text-primary text-lg">
                     <Plus className="h-5 w-5" /> Abrir novo atendimento
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3 text-sm">
+                <CardContent className="space-y-3 text-sm p-4 pt-0 sm:p-6 sm:pt-0">
                   <div className="space-y-1">
                     <Label htmlFor="codigoLoja">Código da Loja</Label>
                     <Input
@@ -590,12 +593,12 @@ const ServiceManager = () => {
               </Card>
 
               <Card className="border-border bg-background/80 shadow-sm">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-primary">
+                <CardHeader className="p-4 sm:p-6">
+                  <CardTitle className="flex items-center gap-2 text-primary text-lg">
                     <Clock className="h-5 w-5" /> Timer de atendimento
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4 text-sm">
+                <CardContent className="space-y-4 text-sm p-4 pt-0 sm:p-6 sm:pt-0">
                   <div className="space-y-1">
                     <Label>Selecionar loja</Label>
                     <Select
@@ -603,7 +606,7 @@ const ServiceManager = () => {
                       onValueChange={setTimerStoreId}
                       disabled={availableStoreOptions.length === 0}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="h-11">
                         <SelectValue placeholder="Nenhuma loja em atendimento" />
                       </SelectTrigger>
                       <SelectContent>
@@ -616,7 +619,7 @@ const ServiceManager = () => {
                     </Select>
                   </div>
 
-                  <div className="rounded-lg border border-dashed border-primary/40 bg-primary/5 p-4 text-center">
+                  <div className="rounded-lg border border-dashed border-primary/40 bg-primary/5 p-3 text-center sm:p-4">
                     <p className="text-xs uppercase tracking-wide text-muted-foreground">
                       Tempo em curso
                     </p>
@@ -698,18 +701,18 @@ const ServiceManager = () => {
 
             <div className="lg:col-span-2 space-y-6">
               <Card className="border-border bg-background/80 shadow-sm">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-foreground">
+                <CardHeader className="p-4 sm:p-6">
+                  <CardTitle className="flex items-center gap-2 text-foreground text-lg">
                     <ClipboardList className="h-5 w-5" /> Chamados em andamento
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
                   {activeCalls.length === 0 ? (
                     <div className="rounded-md border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
                       Nenhum chamado ativo no momento. Abra um novo atendimento para começar.
                     </div>
                   ) : (
-                    <ScrollArea className="h-[520px] pr-4">
+                    <ScrollArea className="h-[520px] pr-2 sm:pr-4">
                       <div className="space-y-4">
                         {activeCalls.map((call) => (
                           <ActiveCallCard
@@ -734,12 +737,12 @@ const ServiceManager = () => {
               </Card>
 
               <Card className="border-border bg-background/80 shadow-sm">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-foreground">
+                <CardHeader className="p-4 sm:p-6">
+                  <CardTitle className="flex items-center gap-2 text-foreground text-lg">
                     <Archive className="h-5 w-5" /> Histórico agrupado por dia/loja
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-4 p-4 pt-0 sm:p-6 sm:pt-0">
                   {groupedHistory.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
                       Nenhum chamado concluído ou arquivado até o momento.
@@ -754,7 +757,10 @@ const ServiceManager = () => {
                           <AccordionContent>
                             <div className="space-y-3">
                               {group.stores.map((store) => (
-                                <Card key={`${group.date}-${store.codigoLoja}`} className="border-dashed border-border bg-card/60">
+                                <Card
+                                  key={`${group.date}-${store.codigoLoja}`}
+                                  className="border-dashed border-border bg-card/60"
+                                >
                                   <CardHeader className="pb-2">
                                     <CardTitle className="text-base font-semibold">
                                       Loja {store.codigoLoja}

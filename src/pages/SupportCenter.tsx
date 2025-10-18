@@ -88,9 +88,9 @@ const SupportCenter = () => {
   };
 
   const proceduresPanel = (
-    <Card className="p-6 space-y-4 shadow-lg">
+    <Card className="p-4 sm:p-6 space-y-4 shadow-lg">
       <div className="space-y-2 text-center lg:text-left">
-        <h2 className="text-xl font-bold text-foreground flex items-center gap-2 justify-center lg:justify-start">
+        <h2 className="text-lg font-bold text-foreground flex items-center gap-2 justify-center lg:justify-start sm:text-xl">
           <FileText className="h-5 w-5 text-primary" />
           Base de Conhecimento (Offline)
         </h2>
@@ -112,7 +112,7 @@ const SupportCenter = () => {
           ? `Encontrados ${filteredProcedures.length} procedimentos disponíveis.`
           : "Nenhum procedimento corresponde à pesquisa atual."}
       </p>
-      <ScrollArea className="h-[520px] rounded-md border bg-background p-4">
+      <ScrollArea className="h-[520px] rounded-md border bg-background p-3 sm:p-4">
         {filteredProcedures.length ? (
           <Accordion type="single" collapsible className="space-y-3">
             {filteredProcedures.map((procedure) => (
@@ -204,7 +204,7 @@ const SupportCenter = () => {
                 <Layers className="h-8 w-8 text-primary" />
               </div>
             </div>
-            <h1 className="text-3xl font-bold text-foreground">Centro de Suporte e Biblioteca Técnica</h1>
+            <h1 className="text-2xl font-bold text-foreground sm:text-3xl">Centro de Suporte e Biblioteca Técnica</h1>
             <p className="text-muted-foreground">
               Consulte a base de conhecimento validada em campo e, quando necessário, utilize os templates de RAT para acelerar o registro técnico.
             </p>

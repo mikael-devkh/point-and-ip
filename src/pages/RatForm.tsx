@@ -150,7 +150,7 @@ const RatForm = () => {
           </header>
 
           <div className="grid gap-6 lg:grid-cols-[2fr,1fr]">
-            <Card className="p-6 space-y-6">
+            <Card className="p-4 sm:p-6 space-y-6">
               <div className="flex flex-wrap justify-end gap-2">
                 {autofillData.isAvailable && (
                   <Button type="button" variant="secondary" onClick={handleApplyAutofill}>
@@ -176,7 +176,7 @@ const RatForm = () => {
                   </AccordionTrigger>
                   <AccordionContent>
                     <div className="space-y-6 pt-2">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
                         <div className="space-y-2">
                           <Label htmlFor="codigoLoja">Código da Loja</Label>
                           <Input
@@ -209,7 +209,7 @@ const RatForm = () => {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
                         <div className="space-y-2 md:col-span-1">
                           <Label htmlFor="endereco">Endereço</Label>
                           <Input
@@ -255,7 +255,7 @@ const RatForm = () => {
                   </AccordionTrigger>
                   <AccordionContent>
                     <div className="space-y-6 pt-2">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                         <div className="space-y-2">
                           <Label htmlFor="serial">Número Série ATIVO</Label>
                           <Input
@@ -297,11 +297,11 @@ const RatForm = () => {
                             value={formData.origemEquipamento}
                             onValueChange={(value) => setFormData({ ...formData, origemEquipamento: value })}
                           >
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                               {origemEquipamentoOptions.map((option) => (
                                 <div
                                   key={option.value}
-                                  className="flex items-center space-x-2 rounded-md border border-input bg-background px-3 py-2"
+                                  className="flex items-center gap-3 rounded-md border border-input bg-background px-3 py-3"
                                 >
                                   <RadioGroupItem value={option.value} id={`origem-${option.value}`} />
                                   <Label htmlFor={`origem-${option.value}`} className="cursor-pointer text-sm">
@@ -319,14 +319,14 @@ const RatForm = () => {
                             value={formData.mauUso}
                             onValueChange={(value) => setFormData({ ...formData, mauUso: value })}
                           >
-                            <div className="flex items-center space-x-4">
-                              <div className="flex items-center space-x-2">
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+                              <div className="flex items-center gap-2">
                                 <RadioGroupItem value="sim" id="mau-uso-sim" />
                                 <Label htmlFor="mau-uso-sim" className="cursor-pointer">
                                   Sim
                                 </Label>
                               </div>
-                              <div className="flex items-center space-x-2">
+                              <div className="flex items-center gap-2">
                                 <RadioGroupItem value="nao" id="mau-uso-nao" />
                                 <Label htmlFor="mau-uso-nao" className="cursor-pointer">
                                   Não
@@ -386,23 +386,23 @@ const RatForm = () => {
                         />
                       </div>
 
-                      <div className="space-y-2">
-                        <Label>Problema resolvido?</Label>
-                        <RadioGroup
-                          value={formData.problemaResolvido}
-                          onValueChange={(value) => setFormData({ ...formData, problemaResolvido: value })}
-                        >
-                          <div className="flex items-center space-x-4">
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="sim" id="problema-sim" />
-                              <Label htmlFor="problema-sim" className="cursor-pointer">
-                                Sim
-                              </Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="nao" id="problema-nao" />
-                              <Label htmlFor="problema-nao" className="cursor-pointer">
-                                Não
+                        <div className="space-y-2">
+                          <Label>Problema resolvido?</Label>
+                          <RadioGroup
+                            value={formData.problemaResolvido}
+                            onValueChange={(value) => setFormData({ ...formData, problemaResolvido: value })}
+                          >
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+                              <div className="flex items-center gap-2">
+                                <RadioGroupItem value="sim" id="problema-sim" />
+                                <Label htmlFor="problema-sim" className="cursor-pointer">
+                                  Sim
+                                </Label>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <RadioGroupItem value="nao" id="problema-nao" />
+                                <Label htmlFor="problema-nao" className="cursor-pointer">
+                                  Não
                               </Label>
                             </div>
                           </div>
@@ -427,14 +427,14 @@ const RatForm = () => {
                           value={formData.haveraRetorno}
                           onValueChange={(value) => setFormData({ ...formData, haveraRetorno: value })}
                         >
-                          <div className="flex items-center space-x-4">
-                            <div className="flex items-center space-x-2">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+                            <div className="flex items-center gap-2">
                               <RadioGroupItem value="sim" id="retorno-sim" />
                               <Label htmlFor="retorno-sim" className="cursor-pointer">
                                 Sim
                               </Label>
                             </div>
-                            <div className="flex items-center space-x-2">
+                            <div className="flex items-center gap-2">
                               <RadioGroupItem value="nao" id="retorno-nao" />
                               <Label htmlFor="retorno-nao" className="cursor-pointer">
                                 Não
@@ -444,7 +444,7 @@ const RatForm = () => {
                         </RadioGroup>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
                         <div className="space-y-2">
                           <Label htmlFor="horaInicio">Hora início</Label>
                           <Input
@@ -562,7 +562,7 @@ const RatForm = () => {
                 </Button>
               </div>
             </Card>
-            <Card className="p-6 space-y-4 h-fit">
+            <Card className="p-4 sm:p-6 space-y-4 h-fit">
               <RatHistoryList
                 history={ratHistory}
                 onSelect={handleRatHistorySelect}

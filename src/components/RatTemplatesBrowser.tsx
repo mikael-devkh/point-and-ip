@@ -75,7 +75,7 @@ const TemplateEditorCard = ({
   return (
     <Card
       className={cn(
-        "group p-4 bg-background/50 border-border shadow-sm transition-colors space-y-3",
+        "group p-3 bg-background/50 border-border shadow-sm transition-colors space-y-3 sm:p-4",
         isActive && "border-primary shadow-lg",
       )}
     >
@@ -100,7 +100,7 @@ const TemplateEditorCard = ({
         <div className="space-y-1">
           <Label className="text-xs text-muted-foreground">Ativo</Label>
           <Select value={template.asset} onValueChange={(value) => handleAssetChange(value as AssetType)}>
-            <SelectTrigger className="h-8 text-xs">
+            <SelectTrigger className="h-9 text-xs">
               <SelectValue placeholder="Ativo" />
             </SelectTrigger>
             <SelectContent>
@@ -115,7 +115,7 @@ const TemplateEditorCard = ({
         <div className="space-y-1">
           <Label className="text-xs text-muted-foreground">Status</Label>
           <Select value={template.status} onValueChange={(value) => handleStatusChange(value as TemplateStatus)}>
-            <SelectTrigger className="h-8 text-xs">
+            <SelectTrigger className="h-9 text-xs">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -319,7 +319,7 @@ export const RatTemplatesBrowser = ({
           ))}
         </SelectContent>
       </Select>
-      <ScrollArea className="h-[500px] rounded-md border p-4 bg-background">
+      <ScrollArea className="h-[500px] rounded-md border p-3 bg-background sm:p-4">
         <div className="space-y-3">
           {filteredTemplates.length ? (
             filteredTemplates.map((template) => (
@@ -343,9 +343,9 @@ export const RatTemplatesBrowser = ({
   );
 
   const detailPanel = selectedTemplate ? (
-    <Card className="p-4 bg-background border-border space-y-4">
+    <Card className="p-4 bg-background border-border space-y-4 sm:p-5">
       <div className="space-y-1">
-        <h3 className="text-lg font-semibold text-primary">{selectedTemplate.title}</h3>
+        <h3 className="text-lg font-semibold text-primary sm:text-xl">{selectedTemplate.title}</h3>
         <p className="text-xs text-muted-foreground">
           {assetLabels[selectedTemplate.asset]} • {statusLabels[selectedTemplate.status]}
         </p>
@@ -387,16 +387,16 @@ export const RatTemplatesBrowser = ({
           <Button
             variant="ghost"
             size="sm"
-            className="gap-2"
+            className="gap-2 w-full justify-center sm:w-auto"
             onClick={() => setActiveMobileTab("list")}
           >
             Voltar
           </Button>
         )}
-        <Button variant="outline" className="gap-2" onClick={handleTemplateDraftSave}>
+        <Button variant="outline" className="gap-2 w-full justify-center sm:w-auto" onClick={handleTemplateDraftSave}>
           Salvar Laudo
         </Button>
-        <Button className="gap-2" onClick={handleApplyTemplate}>
+        <Button className="gap-2 w-full justify-center sm:w-auto" onClick={handleApplyTemplate}>
           <Wand2 className="h-4 w-4" /> Aplicar e abrir RAT
         </Button>
       </div>
@@ -409,9 +409,9 @@ export const RatTemplatesBrowser = ({
 
   if (isMobile) {
     return (
-      <Card className="p-5 space-y-4 shadow-lg">
+      <Card className="p-4 space-y-4 shadow-lg sm:p-5">
         <div className="space-y-2 text-center">
-          <h2 className="text-xl font-bold text-foreground flex items-center justify-center gap-2">
+          <h2 className="text-lg font-bold text-foreground flex items-center justify-center gap-2 sm:text-xl">
             <Layers className="h-5 w-5 text-primary" /> Templates RAT
           </h2>
           <p className="text-sm text-muted-foreground">
@@ -419,10 +419,10 @@ export const RatTemplatesBrowser = ({
           </p>
         </div>
         <div className="flex flex-wrap items-center justify-center gap-2">
-          <Button onClick={handleAddTemplate} variant="secondary" size="sm" className="gap-2">
+          <Button onClick={handleAddTemplate} variant="secondary" size="sm" className="gap-2 w-full sm:w-auto">
             <Plus className="h-4 w-4" /> Novo Laudo
           </Button>
-          <Button onClick={handleResetTemplates} variant="outline" size="sm" className="gap-2">
+          <Button onClick={handleResetTemplates} variant="outline" size="sm" className="gap-2 w-full sm:w-auto">
             <RotateCcw className="h-4 w-4" /> Restaurar Padrões
           </Button>
         </div>
@@ -445,9 +445,9 @@ export const RatTemplatesBrowser = ({
   }
 
   return (
-    <Card className="p-6 space-y-4 shadow-lg">
+    <Card className="p-4 space-y-4 shadow-lg sm:p-6">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+        <h2 className="text-lg font-bold text-foreground flex items-center gap-2 sm:text-xl">
           <Layers className="h-5 w-5 text-primary" /> Templates RAT
         </h2>
         <div className="flex items-center gap-2">

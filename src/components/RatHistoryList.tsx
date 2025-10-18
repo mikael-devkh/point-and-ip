@@ -43,7 +43,14 @@ export const RatHistoryList = ({ history, onSelect, onClear }: RatHistoryListPro
           <History className="h-4 w-4" />
           Histórico de RATs
         </h3>
-        <Button type="button" variant="outline" size="sm" onClick={onClear} disabled={!hasHistory}>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="w-full sm:w-auto"
+          onClick={onClear}
+          disabled={!hasHistory}
+        >
           Limpar Histórico
         </Button>
       </div>
@@ -65,10 +72,10 @@ export const RatHistoryList = ({ history, onSelect, onClear }: RatHistoryListPro
         filteredHistory.map((entry) => (
           <Card
             key={entry.id}
-            className="p-4 bg-secondary border-border cursor-pointer hover:bg-secondary/80 transition-colors"
+            className="p-3 bg-secondary border-border cursor-pointer hover:bg-secondary/80 transition-colors sm:p-4"
             onClick={() => onSelect(entry)}
           >
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div className="space-y-1">
                 <p className="font-medium text-foreground">
                   {entry.fsa ? `FSA ${entry.fsa}` : "FSA não informado"}
@@ -85,7 +92,7 @@ export const RatHistoryList = ({ history, onSelect, onClear }: RatHistoryListPro
                   </p>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground whitespace-nowrap">
+              <p className="text-xs text-muted-foreground sm:text-right">
                 {new Date(entry.timestamp).toLocaleDateString("pt-BR")}
               </p>
             </div>

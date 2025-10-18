@@ -52,20 +52,20 @@ export const ResultCard = ({
   };
 
   const InfoRow = ({ label, value }: { label: string; value: string }) => (
-    <div className="flex items-center justify-between py-2 border-b border-border last:border-0">
+    <div className="flex flex-col gap-2 py-2 border-b border-border last:border-0 sm:flex-row sm:items-center sm:justify-between">
       <span className="text-sm text-muted-foreground">{label}</span>
-      <div className="flex items-center gap-2">
-        <span className="font-mono text-foreground font-medium">{value}</span>
+      <div className="flex items-center gap-2 justify-between sm:justify-end">
+        <span className="font-mono text-foreground font-medium break-all">{value}</span>
         <Button
           onClick={() => handleCopy(value, label)}
           size="icon"
           variant="ghost"
-          className="h-8 w-8 hover:bg-secondary"
+          className="h-10 w-10 hover:bg-secondary"
         >
           {copiedStates[label] ? (
-            <Check className="h-3.5 w-3.5 text-primary" />
+            <Check className="h-4 w-4 text-primary" />
           ) : (
-            <Copy className="h-3.5 w-3.5 text-muted-foreground" />
+            <Copy className="h-4 w-4 text-muted-foreground" />
           )}
         </Button>
       </div>
@@ -73,14 +73,14 @@ export const ResultCard = ({
   );
 
   return (
-    <Card className="p-6 bg-gradient-card border-border">
+    <Card className="p-4 bg-gradient-card border-border sm:p-6">
       <div className="space-y-4">
         <div className="space-y-1">
           <p className="text-sm text-muted-foreground">Loja</p>
           <p className="text-xl font-bold text-foreground">{nomeLoja}</p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <div className="px-3 py-1 bg-primary/20 rounded-md">
             <span className="text-sm font-medium text-primary">{tipo}</span>
           </div>
