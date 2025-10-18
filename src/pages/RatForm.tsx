@@ -24,11 +24,7 @@ import { FileText, Printer, RotateCcw, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { generateRatPDF } from "@/utils/ratPdfGenerator";
 import { RatFormData } from "@/types/rat";
-import {
-  cloneRatFormData,
-  createEmptyRatFormData,
-  origemEquipamentoOptions,
-} from "@/data/ratOptions";
+import { cloneRatFormData, createEmptyRatFormData, origemEquipamentoOptions } from "@/data/ratOptions";
 import { useHapticFeedback } from "@/hooks/use-haptic-feedback";
 import { useRatAutofill } from "@/context/RatAutofillContext";
 
