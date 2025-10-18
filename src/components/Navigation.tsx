@@ -18,7 +18,7 @@ export const Navigation = () => {
     },
     {
       path: "/support",
-      label: "Suporte/KB",
+      label: "KB/RAT Pré-pronta",
       icon: NotebookPen,
     },
     {

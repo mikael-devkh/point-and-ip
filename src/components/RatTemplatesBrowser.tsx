@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
@@ -142,6 +143,7 @@ export const RatTemplatesBrowser = ({
   onRequestGlobalReset,
 }: RatTemplatesBrowserProps) => {
   const { setAutofillData } = useRatAutofill();
+  const navigate = useNavigate();
   const [templates, setTemplates] = useState<RatTemplate[]>(() => loadEditableTemplates());
   const [templateFilter, setTemplateFilter] = useState<AssetType | "all">("all");
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
@@ -282,7 +284,8 @@ export const RatTemplatesBrowser = ({
       diagnostico: templateDraft.diagnostico,
       solucao: templateDraft.solucao,
     });
-    toast.success("Laudo pronto para aplicar no formulário de RAT.");
+    toast.success("Laudo aplicado. Abrindo formulário de RAT...");
+    navigate("/rat");
   };
 
   const handleResetTemplates = () => {
@@ -394,7 +397,7 @@ export const RatTemplatesBrowser = ({
           Salvar Laudo
         </Button>
         <Button className="gap-2" onClick={handleApplyTemplate}>
-          <Wand2 className="h-4 w-4" /> Aplicar na RAT
+          <Wand2 className="h-4 w-4" /> Aplicar e abrir RAT
         </Button>
       </div>
     </Card>
