@@ -44,14 +44,28 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 );
 Button.displayName = "Button";
 
-export const useSidebarToggle = () => {
+type DeprecatedSidebarToggle = {
+  isOpen: boolean;
+  toggle: () => void;
+  open: () => void;
+  close: () => void;
+};
+
+export const useSidebarToggle = (): DeprecatedSidebarToggle => {
   if (import.meta.env?.DEV) {
     console.warn(
       "useSidebarToggle was requested from '@/components/ui/button', but this helper no longer lives here. Import useSidebar from '@/components/ui/sidebar' instead.",
     );
   }
 
-  return () => {};
+  const noop = () => {};
+
+  return {
+    isOpen: false,
+    toggle: noop,
+    open: noop,
+    close: noop,
+  };
 };
 
 export { Button, buttonVariants };
