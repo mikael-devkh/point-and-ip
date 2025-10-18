@@ -8,6 +8,8 @@ import RatForm from "./pages/RatForm";
 import NotFound from "./pages/NotFound";
 import SupportCenter from "./pages/SupportCenter";
 import ServiceManager from "./pages/ServiceManager";
+import LoginPage from "./pages/LoginPage";
+import RegisterPage from "./pages/RegisterPage";
 import { ServiceManagerProvider } from "@/hooks/use-service-manager";
 import { RatAutofillProvider } from "@/context/RatAutofillContext";
 
@@ -24,6 +26,8 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/rat" element={<RatForm />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="/support" element={<SupportCenter />} />
               <Route path="/service-manager" element={<ServiceManager />} />
