@@ -11,12 +11,26 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AssetType, RatTemplate, TemplateStatus } from "@/data/ratTemplatesData";
 import { EditableText } from "@/components/EditableText";
 import { cn } from "@/lib/utils";
-import { loadEditableTemplates, saveTemplatesToLocalStorage } from "@/utils/data-editor-utils";
 import { toast } from "sonner";
 import { useRatAutofill } from "@/context/RatAutofillContext";
 import { Layers, Plus, RotateCcw, Trash2, Wand2 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Switch } from "@/components/ui/switch";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useAuth } from "@/context/AuthContext";
+import { db } from "@/firebase";
+import {
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  onSnapshot,
+  query,
+  setDoc,
+  where,
+  writeBatch,
+} from "firebase/firestore";
+import { ratTemplates } from "@/data/ratTemplatesData";
 
 const assetLabels: Record<AssetType, string> = {
   CPU: "CPU",
@@ -39,6 +53,12 @@ const statusLabels: Record<TemplateStatus, string> = {
   FALHA_PERSISTENTE: "Falha persistente / Escalar",
 };
 
+const isAssetType = (value: unknown): value is AssetType =>
+  typeof value === "string" && Object.prototype.hasOwnProperty.call(assetLabels, value);
+
+const isTemplateStatus = (value: unknown): value is TemplateStatus =>
+  typeof value === "string" && Object.prototype.hasOwnProperty.call(statusLabels, value);
+
 interface RatTemplatesBrowserProps {
   resetSignal?: number;
   onRequestGlobalReset?: () => void;
@@ -48,8 +68,8 @@ interface TemplateEditorCardProps {
   template: RatTemplate;
   isActive: boolean;
   onSelect: (id: string) => void;
-  onUpdate: (template: RatTemplate) => void;
-  onDelete: (id: string) => void;
+  onUpdate: (template: RatTemplate) => void | Promise<void>;
+  onDelete: (id: string) => void | Promise<void>;
   editingEnabled: boolean;
 }
 
@@ -179,7 +199,9 @@ export const RatTemplatesBrowser = ({
 }: RatTemplatesBrowserProps) => {
   const { setAutofillData } = useRatAutofill();
   const navigate = useNavigate();
-  const [templates, setTemplates] = useState<RatTemplate[]>(() => loadEditableTemplates());
+  const { user, loadingAuth } = useAuth();
+  const [templates, setTemplates] = useState<RatTemplate[]>([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(true);
   const [templateFilter, setTemplateFilter] = useState<AssetType | "all">("all");
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [templateDraft, setTemplateDraft] = useState({
@@ -193,11 +215,77 @@ export const RatTemplatesBrowser = ({
   const editSwitchId = "templates-edit-mode";
 
   useEffect(() => {
-    setTemplates(loadEditableTemplates());
     setSelectedTemplateId(null);
     setTemplateDraft({ defeito: "", diagnostico: "", solucao: "" });
     setActiveMobileTab("list");
   }, [resetSignal]);
+
+  useEffect(() => {
+    if (!editingEnabled) {
+      return;
+    }
+    if (!user) {
+      setEditingEnabled(false);
+      toast.info("Faça login para editar seus templates de RAT.");
+    }
+  }, [editingEnabled, user]);
+
+  useEffect(() => {
+    if (loadingAuth) {
+      setLoadingTemplates(true);
+      return;
+    }
+
+    if (!user) {
+      setTemplates([]);
+      setLoadingTemplates(false);
+      setSelectedTemplateId(null);
+      setTemplateDraft({ defeito: "", diagnostico: "", solucao: "" });
+      return;
+    }
+
+    setLoadingTemplates(true);
+    const templatesCollection = collection(db, "ratTemplates");
+    const templatesQuery = query(templatesCollection, where("userId", "==", user.uid));
+
+    const unsubscribe = onSnapshot(
+      templatesQuery,
+      (querySnapshot) => {
+        const userTemplates: RatTemplate[] = querySnapshot.docs.map((templateDoc) => {
+          const data = templateDoc.data();
+
+          const title = typeof data.title === "string" && data.title.trim().length
+            ? data.title
+            : "Template sem título";
+          const asset = isAssetType(data.asset) ? data.asset : "CPU";
+          const status = isTemplateStatus(data.status) ? data.status : "OPERACIONAL";
+          const defeito = typeof data.defeito === "string" ? data.defeito : "";
+          const diagnostico = typeof data.diagnostico === "string" ? data.diagnostico : "";
+          const solucao = typeof data.solucao === "string" ? data.solucao : "";
+
+          return {
+            id: templateDoc.id,
+            title,
+            asset,
+            status,
+            defeito,
+            diagnostico,
+            solucao,
+          } satisfies RatTemplate;
+        });
+
+        setTemplates(userTemplates);
+        setLoadingTemplates(false);
+      },
+      (error) => {
+        console.error("Erro ao carregar templates de RAT:", error);
+        toast.error("Não foi possível carregar seus templates de RAT.");
+        setLoadingTemplates(false);
+      },
+    );
+
+    return () => unsubscribe();
+  }, [loadingAuth, user]);
 
   const filteredTemplates = useMemo(() => {
     if (templateFilter === "all") {
@@ -222,17 +310,6 @@ export const RatTemplatesBrowser = ({
     }
     setActiveMobileTab(selectedTemplateId ? "detail" : "list");
   }, [isMobile, selectedTemplateId]);
-
-  const updateTemplateList = useCallback(
-    (updater: (templates: RatTemplate[]) => RatTemplate[]) => {
-      setTemplates((previous) => {
-        const next = updater(previous);
-        saveTemplatesToLocalStorage(next);
-        return next;
-      });
-    },
-    [],
-  );
 
   const selectedTemplate = useMemo(() => {
     if (!selectedTemplateId) {
@@ -264,87 +341,142 @@ export const RatTemplatesBrowser = ({
   }, [editingEnabled, selectedTemplate]);
 
   const handleTemplateUpdate = useCallback(
-    (updated: RatTemplate) => {
+    async (updated: RatTemplate) => {
       if (!editingEnabled) {
         toast.info("Ative o modo de edição para alterar os laudos.");
         return;
       }
-      updateTemplateList((previous) => {
-        const index = previous.findIndex((template) => template.id === updated.id);
-        if (index === -1) {
-          return previous;
-        }
-        const next = [...previous];
-        next[index] = updated;
-        return next;
-      });
+
+      if (!user) {
+        toast.error("Faça login para editar os templates.");
+        return;
+      }
+
+      try {
+        const templateRef = doc(db, "ratTemplates", updated.id);
+        const { id, ...dataToUpdate } = updated;
+        await setDoc(templateRef, { ...dataToUpdate, userId: user.uid }, { merge: true });
+        toast.success("Laudo atualizado.");
+      } catch (error) {
+        console.error("Erro ao atualizar template de RAT:", error);
+        toast.error("Não foi possível atualizar este laudo.");
+      }
     },
-    [editingEnabled, updateTemplateList],
+    [editingEnabled, user],
   );
 
-  const handleAddTemplate = () => {
+  const handleAddTemplate = useCallback(async () => {
     if (!editingEnabled) {
       toast.info("Ative o modo de edição para adicionar novos laudos.");
       return;
     }
-    const newTemplate: RatTemplate = {
-      id: `template-${Date.now()}`,
-      title: "Novo Laudo Técnico",
-      asset: "CPU",
-      status: "OPERACIONAL",
-      defeito: "Descreva o defeito identificado.",
-      diagnostico: "Descreva os testes realizados.",
-      solucao: "Descreva a solução aplicada ou recomendada.",
-    };
-    updateTemplateList((previous) => [newTemplate, ...previous]);
-    setSelectedTemplateId(newTemplate.id);
-    if (isMobile) {
-      setActiveMobileTab("detail");
-    }
-    toast.success("Novo laudo adicionado à biblioteca.");
-  };
 
-  const handleTemplateDelete = (id: string) => {
-    if (!editingEnabled) {
-      toast.info("Ative o modo de edição para remover laudos.");
+    if (!user) {
+      toast.error("Faça login para adicionar novos templates.");
       return;
     }
-    if (typeof window !== "undefined" && !window.confirm("Remover este template permanentemente?")) {
-      return;
-    }
-    updateTemplateList((previous) => previous.filter((template) => template.id !== id));
-    if (selectedTemplateId === id) {
-      setSelectedTemplateId(null);
-      setTemplateDraft({ defeito: "", diagnostico: "", solucao: "" });
-    }
-    toast.success("Template removido.");
-  };
 
-  const handleTemplateDraftSave = () => {
+    try {
+      const newTemplateData = {
+        title: "Novo Laudo Técnico",
+        asset: "CPU" as AssetType,
+        status: "OPERACIONAL" as TemplateStatus,
+        defeito: "Descreva o defeito identificado.",
+        diagnostico: "Descreva os testes realizados.",
+        solucao: "Descreva a solução aplicada ou recomendada.",
+        userId: user.uid,
+      };
+
+      const docRef = await addDoc(collection(db, "ratTemplates"), newTemplateData);
+      setSelectedTemplateId(docRef.id);
+      setTemplateDraft({
+        defeito: newTemplateData.defeito,
+        diagnostico: newTemplateData.diagnostico,
+        solucao: newTemplateData.solucao,
+      });
+      if (isMobile) {
+        setActiveMobileTab("detail");
+      }
+      toast.success("Novo laudo adicionado à biblioteca.");
+    } catch (error) {
+      console.error("Erro ao criar novo template de RAT:", error);
+      toast.error("Não foi possível adicionar um novo laudo.");
+    }
+  }, [editingEnabled, isMobile, user]);
+
+  const handleTemplateDelete = useCallback(
+    async (id: string) => {
+      if (!editingEnabled) {
+        toast.info("Ative o modo de edição para remover laudos.");
+        return;
+      }
+
+      if (!user) {
+        toast.error("Faça login para remover templates.");
+        return;
+      }
+
+      if (typeof window !== "undefined" && !window.confirm("Remover este template permanentemente?")) {
+        return;
+      }
+
+      try {
+        await deleteDoc(doc(db, "ratTemplates", id));
+        if (selectedTemplateId === id) {
+          setSelectedTemplateId(null);
+          setTemplateDraft({ defeito: "", diagnostico: "", solucao: "" });
+        }
+        toast.success("Template removido.");
+      } catch (error) {
+        console.error("Erro ao remover template de RAT:", error);
+        toast.error("Não foi possível remover este laudo.");
+      }
+    },
+    [editingEnabled, selectedTemplateId, user],
+  );
+
+  const handleTemplateDraftSave = useCallback(async () => {
     if (!editingEnabled) {
       toast.info("Ative o modo de edição para salvar alterações.");
       return;
     }
+
     if (!selectedTemplateId) {
       toast.error("Selecione um template para salvar as alterações.");
       return;
     }
-    updateTemplateList((previous) => {
-      const index = previous.findIndex((template) => template.id === selectedTemplateId);
-      if (index === -1) {
-        return previous;
-      }
-      const next = [...previous];
-      next[index] = {
-        ...previous[index],
-        defeito: templateDraft.defeito,
-        diagnostico: templateDraft.diagnostico,
-        solucao: templateDraft.solucao,
-      };
-      return next;
-    });
-    toast.success("Laudo atualizado com sucesso.");
-  };
+
+    if (!selectedTemplate) {
+      toast.error("Template selecionado não encontrado.");
+      return;
+    }
+
+    if (!user) {
+      toast.error("Faça login para atualizar os templates.");
+      return;
+    }
+
+    try {
+      const templateRef = doc(db, "ratTemplates", selectedTemplateId);
+      await setDoc(
+        templateRef,
+        {
+          title: selectedTemplate.title,
+          asset: selectedTemplate.asset,
+          status: selectedTemplate.status,
+          defeito: templateDraft.defeito,
+          diagnostico: templateDraft.diagnostico,
+          solucao: templateDraft.solucao,
+          userId: user.uid,
+        },
+        { merge: true },
+      );
+      toast.success("Laudo atualizado com sucesso.");
+    } catch (error) {
+      console.error("Erro ao salvar alterações do template:", error);
+      toast.error("Não foi possível salvar as alterações deste laudo.");
+    }
+  }, [editingEnabled, selectedTemplate, selectedTemplateId, templateDraft, user]);
 
   const handleApplyTemplate = () => {
     if (!selectedTemplateId) {
@@ -366,21 +498,89 @@ export const RatTemplatesBrowser = ({
     navigate("/rat");
   };
 
-  const handleResetTemplates = () => {
+  const handleResetTemplates = useCallback(async () => {
     if (!editingEnabled) {
       toast.info("Ative o modo de edição para restaurar os padrões.");
       return;
     }
-    if (onRequestGlobalReset) {
-      onRequestGlobalReset();
+
+    if (!user) {
+      toast.error("Faça login para restaurar os templates.");
       return;
     }
-    setTemplates(loadEditableTemplates());
-    setSelectedTemplateId(null);
-    setTemplateDraft({ defeito: "", diagnostico: "", solucao: "" });
-    setActiveMobileTab("list");
-    toast.info("Templates recarregados do padrão.");
-  };
+
+    if (typeof window !== "undefined" && !window.confirm("Restaurar todos os templates para o padrão?")) {
+      return;
+    }
+
+    try {
+      setLoadingTemplates(true);
+
+      if (templates.length) {
+        const batch = writeBatch(db);
+        templates.forEach((template) => {
+          batch.delete(doc(db, "ratTemplates", template.id));
+        });
+        await batch.commit();
+      }
+
+      const templatesCollection = collection(db, "ratTemplates");
+      await Promise.all(
+        ratTemplates.map((template) =>
+          addDoc(templatesCollection, {
+            title: template.title,
+            asset: template.asset,
+            status: template.status,
+            defeito: template.defeito,
+            diagnostico: template.diagnostico,
+            solucao: template.solucao,
+            userId: user.uid,
+            templateKey: template.id,
+          }),
+        ),
+      );
+
+      setSelectedTemplateId(null);
+      setTemplateDraft({ defeito: "", diagnostico: "", solucao: "" });
+      setActiveMobileTab("list");
+      toast.success("Templates restaurados para os padrões iniciais.");
+      onRequestGlobalReset?.();
+    } catch (error) {
+      console.error("Erro ao restaurar templates padrão:", error);
+      toast.error("Não foi possível restaurar os templates padrão.");
+    } finally {
+      setLoadingTemplates(false);
+    }
+  }, [editingEnabled, onRequestGlobalReset, templates, user]);
+
+  if (loadingAuth || loadingTemplates) {
+    return (
+      <Card className="p-4 space-y-4 shadow-lg sm:p-6">
+        <div className="space-y-2">
+          <Skeleton className="h-6 w-48" />
+          <Skeleton className="h-4 w-72" />
+        </div>
+        <div className="space-y-3">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <Skeleton key={index} className="h-20 w-full rounded-lg" />
+          ))}
+        </div>
+      </Card>
+    );
+  }
+
+  if (!user) {
+    return (
+      <Card className="p-6 text-center shadow-lg">
+        <div className="space-y-3">
+          <h2 className="text-lg font-semibold text-foreground">Templates RAT</h2>
+          <p className="text-sm text-muted-foreground">
+            Faça login para visualizar e personalizar seus laudos técnicos salvos no Firestore.
+          </p>
+        </div>
+      </Card>
+    );
+  }
 
   const listPanel = (
     <div className="space-y-3">

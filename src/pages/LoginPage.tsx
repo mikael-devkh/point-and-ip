@@ -97,22 +97,20 @@ const LoginPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-primary px-4 py-12">
-      <div className="mx-auto flex w-full max-w-md flex-col items-center justify-center">
-        <Card className="w-full shadow-lg">
-          <CardHeader className="space-y-2 text-center">
-            <CardTitle className="text-2xl font-bold text-foreground">
-              Entrar na plataforma
-            </CardTitle>
-            <CardDescription className="text-muted-foreground">
-              Utilize suas credenciais corporativas para acessar as ferramentas WT.
-            </CardDescription>
+      <div className="mx-auto flex min-h-[80vh] w-full max-w-md items-center justify-center">
+        <Card className="w-full shadow-xl animate-in fade-in-50 slide-in-from-bottom-4">
+          <CardHeader className="space-y-4 text-center">
+            <img src="/wt-logo.svg" alt="WT Tecnologia" className="mx-auto h-16 w-auto" />
+            <div className="space-y-2">
+              <CardTitle className="text-2xl font-bold text-foreground">Acesse sua conta</CardTitle>
+              <CardDescription className="text-muted-foreground">
+                Entre com suas credenciais corporativas para utilizar o ecossistema WT Tecnologia.
+              </CardDescription>
+            </div>
           </CardHeader>
           <CardContent>
             <Form {...form}>
-              <form
-                onSubmit={form.handleSubmit(onSubmit)}
-                className="space-y-6"
-              >
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 <FormField
                   control={form.control}
                   name="email"
@@ -153,26 +151,23 @@ const LoginPage = () => {
                   )}
                 />
 
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={form.formState.isSubmitting}
-                >
-                  {form.formState.isSubmitting && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  )}
+                <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
+                  {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Entrar
                 </Button>
               </form>
             </Form>
           </CardContent>
-          <CardFooter className="flex flex-col gap-2 text-sm text-muted-foreground">
-            <span>
-              Ainda não possui acesso?{" "}
-              <Link to="/register" className="text-primary hover:underline">
-                Criar conta
-              </Link>
-            </span>
+          <CardFooter className="flex flex-col gap-3 text-sm text-muted-foreground">
+            <Button variant="link" asChild className="text-primary">
+              <Link to="#">Esqueci minha senha</Link>
+            </Button>
+            <div>
+              Ainda não possui acesso?
+              <Button variant="link" asChild className="text-primary">
+                <Link to="/register">Criar conta</Link>
+              </Button>
+            </div>
           </CardFooter>
         </Card>
       </div>

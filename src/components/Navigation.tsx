@@ -10,10 +10,15 @@ import {
   SheetContent,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { useAuth } from "@/context/AuthContext";
+import { signOut } from "firebase/auth";
+import { auth } from "@/firebase";
+import { toast } from "sonner";
 
 export const Navigation = () => {
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
+  const { user } = useAuth();
   const navItems = [
     {
       path: "/",
@@ -36,6 +41,16 @@ export const Navigation = () => {
       icon: DollarSign,
     },
   ];
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      toast.success("Sessão encerrada com sucesso.");
+    } catch (error) {
+      console.error("Erro ao sair da conta:", error);
+      toast.error("Não foi possível encerrar a sessão.");
+    }
+  };
 
   return (
     <nav className="fixed top-0 left-0 right-0 bg-card/90 backdrop-blur-sm border-b border-border z-50">
@@ -132,12 +147,31 @@ export const Navigation = () => {
                     <span className="text-sm text-muted-foreground">Tema</span>
                     <ThemeToggle />
                   </div>
+                  {user && (
+                    <div className="mt-4">
+                      <SheetClose asChild>
+                        <Button variant="outline" className="w-full" onClick={handleLogout}>
+                          Sair
+                        </Button>
+                      </SheetClose>
+                    </div>
+                  )}
                 </div>
               </SheetContent>
             </Sheet>
           </div>
           <div className="hidden md:flex items-center space-x-2">
+            {user && (
+              <span className="text-sm font-medium text-muted-foreground">
+                {user.email}
+              </span>
+            )}
             <ThemeToggle />
+            {user && (
+              <Button variant="outline" size="sm" onClick={handleLogout}>
+                Sair
+              </Button>
+            )}
           </div>
         </div>
       </div>
