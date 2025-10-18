@@ -13,6 +13,16 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "react-firebase-hooks/auth": path.resolve(
+        __dirname,
+        "./src/lib/react-firebase-hooks/auth.ts",
+      ),
+      "firebase/app": path.resolve(__dirname, "./src/lib/firebase/app.ts"),
+      "firebase/auth": path.resolve(__dirname, "./src/lib/firebase/auth.ts"),
+      "firebase/firestore": path.resolve(
+        __dirname,
+        "./src/lib/firebase/firestore.ts",
+      ),
     },
   },
 }));
