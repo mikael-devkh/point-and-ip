@@ -176,12 +176,12 @@ const RatForm = () => {
 
           <div className="grid gap-6 lg:grid-cols-[2fr,1fr]">
             <Card className="relative overflow-hidden p-4 sm:p-6 space-y-6">
-              <img
-                src="/wt-logo.svg"
-                alt="WT Tecnologia"
-                className="pointer-events-none select-none absolute -top-10 -right-6 h-32 w-auto opacity-10 sm:-top-12 sm:-right-8 sm:h-36"
+              <span
+                className="pointer-events-none select-none absolute -top-6 -right-4 text-5xl font-black tracking-tight text-primary/10 sm:-top-8 sm:-right-6 sm:text-6xl"
                 aria-hidden="true"
-              />
+              >
+                WT Tecnologia
+              </span>
               <div className="flex flex-wrap justify-end gap-2">
                 {autofillData.isAvailable && (
                   <Button type="button" variant="secondary" onClick={handleApplyAutofill}>

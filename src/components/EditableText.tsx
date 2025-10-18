@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Check, Edit, X } from "lucide-react";
@@ -11,6 +11,7 @@ interface EditableTextProps {
   className?: string;
   placeholder?: string;
   isTextarea?: boolean;
+  disabled?: boolean;
 }
 
 export const EditableText = ({
@@ -19,9 +20,14 @@ export const EditableText = ({
   className,
   placeholder = "Clique para editar",
   isTextarea = false,
+  disabled = false,
 }: EditableTextProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [value, setValue] = useState(initialValue);
+
+  useEffect(() => {
+    setValue(initialValue);
+  }, [initialValue]);
 
   const handleSave = () => {
     onSave(value);
@@ -29,6 +35,20 @@ export const EditableText = ({
   };
 
   const Component = isTextarea ? Textarea : Input;
+
+  if (disabled) {
+    return (
+      <div
+        className={cn(
+          "w-full rounded-sm px-1 py-0.5 text-base text-foreground/90",
+          isTextarea && "whitespace-pre-wrap text-sm leading-relaxed",
+          className,
+        )}
+      >
+        {initialValue || <span className="text-muted-foreground">{placeholder}</span>}
+      </div>
+    );
+  }
 
   if (isEditing) {
     return (
