@@ -1,10 +1,14 @@
-import { useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import { FirebaseError } from "firebase/app";
+import {
+  createUserWithEmailAndPassword,
+  sendEmailVerification,
+  signOut,
+  AuthError,
+} from "firebase/auth";
 import { toast } from "sonner";
 import { auth } from "@/firebase";
 import { useAuth } from "@/context/AuthContext";
@@ -41,57 +45,66 @@ const registerSchema = z.object({
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
-const getErrorMessage = (error: unknown) => {
-  if (error instanceof FirebaseError) {
-    switch (error.code) {
-      case "auth/email-already-in-use":
-        return "Este e-mail já está cadastrado.";
-      case "auth/invalid-email":
-        return "E-mail inválido.";
-      case "auth/weak-password":
-        return "A senha é muito fraca. Utilize ao menos 6 caracteres.";
-      default:
-        return "Não foi possível criar a conta. Tente novamente.";
-    }
-  }
-  return "Não foi possível criar a conta. Tente novamente.";
-};
-
 const RegisterPage = () => {
   const navigate = useNavigate();
-  const { user, loadingAuth } = useAuth();
+  const { user } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: { email: "", password: "" },
   });
 
-  useEffect(() => {
-    if (!loadingAuth && user) {
-      navigate("/");
-    }
-  }, [loadingAuth, navigate, user]);
-
   const onSubmit = async (values: RegisterFormValues) => {
+    setIsSubmitting(true);
     try {
-      await createUserWithEmailAndPassword(auth, values.email, values.password);
-      toast.success("Conta criada com sucesso!");
-      navigate("/");
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        values.email,
+        values.password
+      );
+
+      const newUser = userCredential.user;
+
+      if (!newUser) {
+        throw new Error("Não foi possível obter o usuário recém-criado.");
+      }
+
+      await sendEmailVerification(newUser);
+      toast.success(
+        "Conta criada! Verifique seu e-mail para ativar o acesso antes de fazer login."
+      );
+
+      await signOut(auth);
+      navigate("/login");
     } catch (error) {
-      toast.error(getErrorMessage(error));
+      let errorMessage =
+        "Não foi possível criar a conta. Verifique os dados e tente novamente.";
+
+      if (error && typeof error === "object" && "code" in error) {
+        const firebaseError = error as AuthError;
+        switch (firebaseError.code) {
+          case "auth/email-already-in-use":
+            errorMessage = "Este e-mail já está cadastrado.";
+            break;
+          case "auth/invalid-email":
+            errorMessage = "E-mail inválido.";
+            break;
+          case "auth/weak-password":
+            errorMessage = "A senha é muito fraca. Utilize ao menos 6 caracteres.";
+            break;
+          default:
+            errorMessage = "Não foi possível criar a conta. Tente novamente.";
+        }
+      }
+
+      toast.error(errorMessage);
     }
+    setIsSubmitting(false);
   };
 
-  if (loadingAuth) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-primary">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
   if (user) {
-    return null;
+    return <Navigate to="/" replace />;
   }
 
   return (
@@ -152,14 +165,8 @@ const RegisterPage = () => {
                   )}
                 />
 
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={form.formState.isSubmitting}
-                >
-                  {form.formState.isSubmitting && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  )}
+                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Criar conta
                 </Button>
               </form>

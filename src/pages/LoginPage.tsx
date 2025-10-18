@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { FirebaseError } from "firebase/app";
 import { toast } from "sonner";
 import { auth } from "@/firebase";
@@ -75,7 +75,22 @@ const LoginPage = () => {
 
   const onSubmit = async (values: LoginFormValues) => {
     try {
-      await signInWithEmailAndPassword(auth, values.email, values.password);
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        values.email,
+        values.password
+      );
+
+      const loggedUser = userCredential.user;
+
+      if (!loggedUser.emailVerified) {
+        await signOut(auth);
+        toast.error(
+          "Seu e-mail ainda não foi verificado. Confira sua caixa de entrada antes de acessar."
+        );
+        return;
+      }
+
       toast.success("Login realizado com sucesso!");
       navigate("/");
     } catch (error) {
