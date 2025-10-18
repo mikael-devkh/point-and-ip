@@ -44,4 +44,14 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 );
 Button.displayName = "Button";
 
+export const useSidebarToggle = () => {
+  if (import.meta.env?.DEV) {
+    console.warn(
+      "useSidebarToggle was requested from '@/components/ui/button', but this helper no longer lives here. Import useSidebar from '@/components/ui/sidebar' instead.",
+    );
+  }
+
+  return () => {};
+};
+
 export { Button, buttonVariants };
