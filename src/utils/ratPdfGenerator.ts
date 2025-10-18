@@ -1,25 +1,26 @@
-import { PDFDocument, PDFPage, PDFFont, StandardFonts, rgb } from "pdf-lib";
+import {
+  PDFDocument,
+  PDFPage,
+  PDFFont,
+  PDFTextField,
+  StandardFonts,
+  rgb,
+} from "pdf-lib";
 import ratTemplateUrl from "@/assets/rat-template.pdf?url";
 import { RatFormData } from "@/types/rat";
-import {
-  equipamentoOptions,
-  origemEquipamentoOptions,
-  pecasCabosOptions,
-  pecasImpressoraOptions,
-} from "@/data/ratOptions";
+import { origemEquipamentoOptions } from "@/data/ratOptions";
 
 const log = (...args: any[]) => console.debug("[RAT]", ...args);
 
 // Helper para setar texto em campos do formulário
-function setTextSafe(form: any, fieldName: string, value?: string) {
+function setTextSafe(form: any, fieldName: string, value?: string | null) {
+  const textValue = value === undefined || value === null ? "" : String(value);
   try {
-    if (value === undefined || value === null) return;
-    const v = String(value);
-    if (!v) return;
-    form.getTextField(fieldName).setText(v);
+    form.getTextField(fieldName).setText(textValue);
   } catch {
+    if (!textValue) return;
     try {
-      form.getDropdown(fieldName).select(String(value));
+      form.getDropdown(fieldName).select(textValue);
     } catch {}
   }
 }
@@ -31,6 +32,29 @@ const splitLines = (text?: string, maxLines = 4) =>
     .map((x) => x.trim())
     .filter(Boolean)
     .slice(0, maxLines);
+
+const getOrigemCodigo = (value?: string) => {
+  if (!value) return "";
+  const [codigo] = value.split("-");
+  return codigo?.trim() ?? "";
+};
+
+const formatDateBr = (value?: string) => {
+  if (!value) return "";
+  const [datePart] = value.split("T");
+  const match = datePart?.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (match) {
+    const [, year, month, day] = match;
+    return `${day}/${month}/${year}`;
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return "";
+  }
+
+  return parsed.toLocaleDateString("pt-BR");
+};
 
 const normalizeHour = (hour?: string) => (hour ? hour.replace(/\s+/g, "") : hour);
 
@@ -62,12 +86,15 @@ export const generateRatPDF = async (formData: RatFormData) => {
     const pageHeight = page.getHeight();
     const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-    // Log dos campos disponíveis para debug
+    // Limpa qualquer valor pré-existente no template antes de preencher
     try {
-      const fields = form.getFields().map((f: any) => f.getName());
-      log("Campos disponíveis no PDF:", fields);
+      form.getFields().forEach((field) => {
+        if (field instanceof PDFTextField) {
+          field.setText("");
+        }
+      });
     } catch (e) {
-      log("Não foi possível listar campos:", e);
+      log("Não foi possível limpar os campos do formulário:", e);
     }
 
     // IDENTIFICAÇÃO
@@ -87,18 +114,13 @@ export const generateRatPDF = async (formData: RatFormData) => {
     setTextSafe(form, "Marca", formData.marca);
     setTextSafe(form, "Modelo", formData.modelo);
 
-    const equipDefeitoLines = splitLines(formData.equipComDefeito, 3);
-    setTextSafe(form, "Row1", equipDefeitoLines[0]);
-    setTextSafe(form, "Row2", equipDefeitoLines[1]);
-    setTextSafe(form, "Row3", equipDefeitoLines[2]);
-
     // ORIGEM DO EQUIPAMENTO - preencher apenas E1, E2, etc
     if (formData.origemEquipamento) {
       const origemOption = origemEquipamentoOptions.find(
         (option) => option.value === formData.origemEquipamento,
       );
       if (origemOption) {
-        setTextSafe(form, "Origem", origemOption.value);
+        setTextSafe(form, "Origem", getOrigemCodigo(origemOption.value));
       }
     }
 
@@ -108,40 +130,43 @@ export const generateRatPDF = async (formData: RatFormData) => {
     }
     setTextSafe(form, "MarcaNovo", formData.marcaTroca);
     setTextSafe(form, "ModeloNovo", formData.modeloTroca);
-    setTextSafe(form, "Origem", formData.equipNovoRecond);
+    if (!formData.origemEquipamento) {
+      setTextSafe(form, "Origem", formData.equipNovoRecond);
+    }
 
     // PEÇAS/CABOS - Removido
     
     // PEÇAS IMPRESSORA - Removido
 
     // MAU USO
+    const mauUsoMarkYFromTop = 322;
     if (formData.mauUso === "sim") {
-      drawMark(page, font, pageHeight, 407, 522);
+      drawMark(page, font, pageHeight, 407, mauUsoMarkYFromTop);
     } else if (formData.mauUso === "nao") {
-      drawMark(page, font, pageHeight, 480, 522);
+      drawMark(page, font, pageHeight, 480, mauUsoMarkYFromTop);
     }
 
     // OBSERVAÇÕES PEÇAS
     const observacoesLines = splitLines(formData.observacoesPecas, 3);
-    setTextSafe(form, "Row1", observacoesLines[0]);
-    setTextSafe(form, "Row2", observacoesLines[1]);
-    setTextSafe(form, "Row3", observacoesLines[2]);
+    setTextSafe(form, "Row1", observacoesLines[0] ?? "");
+    setTextSafe(form, "Row2", observacoesLines[1] ?? "");
+    setTextSafe(form, "Row3", observacoesLines[2] ?? "");
 
     // DEFEITO/PROBLEMA
     const defeitoLines = splitLines(formData.defeitoProblema, 2);
-    setTextSafe(form, "DefeitoProblemaRow1", defeitoLines[0]);
-    setTextSafe(form, "DefeitoProblemaRow2", defeitoLines[1]);
+    setTextSafe(form, "DefeitoProblemaRow1", defeitoLines[0] ?? "");
+    setTextSafe(form, "DefeitoProblemaRow2", defeitoLines[1] ?? "");
 
     // DIAGNÓSTICO/TESTES
     const diagnosticoLines = splitLines(formData.diagnosticoTestes, 4);
-    setTextSafe(form, "DiagnósticoTestesrealizadosRow1", diagnosticoLines[0]);
-    setTextSafe(form, "DiagnósticoTestesrealizadosRow2", diagnosticoLines[1]);
-    setTextSafe(form, "DiagnósticoTestesrealizadosRow3", diagnosticoLines[2]);
-    setTextSafe(form, "DiagnósticoTestesrealizadosRow4", diagnosticoLines[3]);
+    setTextSafe(form, "DiagnósticoTestesrealizadosRow1", diagnosticoLines[0] ?? "");
+    setTextSafe(form, "DiagnósticoTestesrealizadosRow2", diagnosticoLines[1] ?? "");
+    setTextSafe(form, "DiagnósticoTestesrealizadosRow3", diagnosticoLines[2] ?? "");
+    setTextSafe(form, "DiagnósticoTestesrealizadosRow4", diagnosticoLines[3] ?? "");
 
     // SOLUÇÃO
     const solucaoLines = splitLines(formData.solucao, 1);
-    setTextSafe(form, "SoluçãoRow1", solucaoLines[0]);
+    setTextSafe(form, "SoluçãoRow1", solucaoLines[0] ?? "");
 
     // PROBLEMA RESOLVIDO
     if (formData.problemaResolvido === "sim") {
@@ -162,8 +187,7 @@ export const generateRatPDF = async (formData: RatFormData) => {
     setTextSafe(form, "Horainício", normalizeHour(formData.horaInicio));
     setTextSafe(form, "Horatérmino", normalizeHour(formData.horaTermino));
     
-    const dataFormatada = formData.data ? new Date(formData.data).toLocaleDateString("pt-BR") : "";
-    setTextSafe(form, "DATA", dataFormatada);
+    setTextSafe(form, "DATA", formatDateBr(formData.data));
 
     // CLIENTE
     setTextSafe(form, "NOMELEGÍVEL", formData.clienteNome);
