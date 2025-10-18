@@ -3,24 +3,30 @@ import { ActiveCall, RequiredMediaType } from "@/hooks/use-service-manager";
 const REQUIRED_MEDIA_ORDER: RequiredMediaType[] = [
   "serial",
   "defect_photo",
+  "defect_video",
   "solution_video",
   "workbench_photo",
+  "cupom_photo",
   "replacement_serial",
 ];
 
 const MEDIA_BASE_NAMES: Record<RequiredMediaType, string> = {
   serial: "serial",
   defect_photo: "defeito",
+  defect_video: "video-defeito",
   solution_video: "video-solução",
   workbench_photo: "bancada",
+  cupom_photo: "cupom",
   replacement_serial: "serial-troca",
 };
 
 const MEDIA_LABELS: Record<RequiredMediaType, string> = {
   serial: "Foto do Serial do Ativo",
   defect_photo: "Foto do Defeito",
-  solution_video: "Vídeo da Solução/Defeito",
+  defect_video: "Vídeo do Defeito",
+  solution_video: "Vídeo da Solução",
   workbench_photo: "Foto da Bancada/Local",
+  cupom_photo: "Foto do Cupom Fiscal",
   replacement_serial: "Foto do Serial de Troca (Opcional)",
 };
 

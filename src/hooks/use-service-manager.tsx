@@ -11,8 +11,10 @@ import type { ReactNode } from "react";
 export type RequiredMediaType =
   | "serial"
   | "defect_photo"
+  | "defect_video"
   | "solution_video"
   | "workbench_photo"
+  | "cupom_photo"
   | "replacement_serial";
 
 export type MediaStatus = "missing" | "uploaded";
@@ -88,8 +90,10 @@ const ServiceManagerContext =
 const defaultMediaState: MediaChecklist = {
   serial: { status: "missing" },
   defect_photo: { status: "missing" },
+  defect_video: { status: "missing" },
   solution_video: { status: "missing" },
   workbench_photo: { status: "missing" },
+  cupom_photo: { status: "missing" },
   replacement_serial: { status: "missing" },
 };
 

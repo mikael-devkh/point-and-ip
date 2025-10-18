@@ -44,6 +44,7 @@ import {
   Pause,
   Play,
   Plus,
+  ReceiptText,
   RefreshCcw,
   Trash2,
   UploadCloud,
@@ -57,8 +58,18 @@ const REQUIRED_MEDIA_LABELS: Record<
 > = {
   serial: { label: "Foto do Serial do Ativo", icon: Camera },
   defect_photo: { label: "Foto do Defeito", icon: Camera },
-  solution_video: { label: "Vídeo da Solução/Defeito", icon: Video },
+  defect_video: { label: "Vídeo do Defeito", icon: Video },
+  solution_video: {
+    label: "Vídeo da Solução (se aplicável)",
+    icon: Video,
+    optional: true,
+  },
   workbench_photo: { label: "Foto da Bancada/Local", icon: Camera },
+  cupom_photo: {
+    label: "Foto do Cupom Fiscal (se PDV)",
+    icon: ReceiptText,
+    optional: true,
+  },
   replacement_serial: {
     label: "Foto do Serial de Troca (Opcional)",
     icon: Camera,
@@ -69,12 +80,19 @@ const REQUIRED_MEDIA_LABELS: Record<
 const REQUIRED_MEDIA_ORDER: RequiredMediaType[] = [
   "serial",
   "defect_photo",
+  "defect_video",
   "solution_video",
   "workbench_photo",
+  "cupom_photo",
   "replacement_serial",
 ];
 
-const MANDATORY_MEDIA: RequiredMediaType[] = REQUIRED_MEDIA_ORDER.slice(0, 4);
+const MANDATORY_MEDIA: RequiredMediaType[] = [
+  "serial",
+  "defect_photo",
+  "defect_video",
+  "workbench_photo",
+];
 
 const MEDIA_INPUT_CONFIG: Record<
   RequiredMediaType,
@@ -82,8 +100,10 @@ const MEDIA_INPUT_CONFIG: Record<
 > = {
   serial: { accept: "image/*", capture: "environment" },
   defect_photo: { accept: "image/*", capture: "environment" },
+  defect_video: { accept: "video/*", capture: "environment" },
   solution_video: { accept: "video/*", capture: "environment" },
   workbench_photo: { accept: "image/*", capture: "environment" },
+  cupom_photo: { accept: "image/*", capture: "environment" },
   replacement_serial: { accept: "image/*", capture: "environment" },
 };
 
@@ -158,6 +178,10 @@ const ActiveCallCard = ({
     }
   };
 
+  const mediaOrderForCall = call.pdv
+    ? REQUIRED_MEDIA_ORDER
+    : REQUIRED_MEDIA_ORDER.filter((media) => media !== "cupom_photo");
+
   return (
     <Card className="border-border bg-background/70 shadow-sm">
       <CardHeader className="space-y-1 p-4 sm:p-6">
@@ -193,7 +217,7 @@ const ActiveCallCard = ({
         </div>
 
         <div className="space-y-2">
-          {REQUIRED_MEDIA_ORDER.map((media) => {
+          {mediaOrderForCall.map((media) => {
             const { label, icon: Icon, optional } = REQUIRED_MEDIA_LABELS[media];
             const evidence = call.photos[media];
             const status = evidence?.status ?? "missing";
