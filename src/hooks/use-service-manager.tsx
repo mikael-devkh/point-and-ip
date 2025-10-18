@@ -26,6 +26,12 @@ export interface MediaEvidence {
 
 export type MediaChecklist = Record<RequiredMediaType, MediaEvidence>;
 
+export interface StoreTimerRecord {
+  codigoLoja: string;
+  timeStarted: number | null;
+  totalMinutes: number;
+}
+
 export interface ActiveCall {
   id: string;
   fsa: string;
@@ -56,6 +62,7 @@ export interface GroupedCallBucket {
 interface ServiceManagerContextValue {
   calls: ActiveCall[];
   activeCalls: ActiveCall[];
+  storeTimers: Record<string, StoreTimerRecord>;
   addCall: (payload: NewCallPayload) => void;
   removeCall: (id: string) => void;
   updatePhotoStatus: (
@@ -64,14 +71,16 @@ interface ServiceManagerContextValue {
     status: MediaStatus,
     evidence?: Partial<Omit<MediaEvidence, "status">>
   ) => void;
-  completeCall: (id: string) => void;
+  completeCall: (id: string, totalMinutes?: number) => void;
   archiveAllCompleted: () => void;
-  startCallTimer: (id: string, startedAt?: number) => void;
-  stopCallTimer: (id: string, additionalMinutes: number) => void;
-  resetCallTimer: (id: string) => void;
+  startStoreTimer: (codigoLoja: string, startedAt?: number) => void;
+  stopStoreTimer: (codigoLoja: string, additionalMinutes: number) => void;
+  resetStoreTimer: (codigoLoja: string) => void;
+  getStoreTotalMinutes: (codigoLoja: string) => number;
 }
 
 const LOCAL_STORAGE_KEY = "service_manager_calls";
+const STORE_TIMERS_STORAGE_KEY = "service_manager_store_timers";
 
 const ServiceManagerContext =
   createContext<ServiceManagerContextValue | undefined>(undefined);
@@ -148,6 +157,42 @@ const loadStoredCalls = (): ActiveCall[] => {
   }
 };
 
+const normalizeStoreTimerRecord = (
+  codigoLoja: string,
+  record?: Partial<StoreTimerRecord>
+): StoreTimerRecord => {
+  return {
+    codigoLoja,
+    timeStarted:
+      record?.timeStarted && Number.isFinite(record.timeStarted)
+        ? record.timeStarted
+        : null,
+    totalMinutes:
+      record?.totalMinutes && Number.isFinite(record.totalMinutes)
+        ? Math.max(0, Math.round(record.totalMinutes))
+        : 0,
+  };
+};
+
+const loadStoredStoreTimers = (): Record<string, StoreTimerRecord> => {
+  if (typeof window === "undefined") return {};
+  try {
+    const stored = window.localStorage.getItem(STORE_TIMERS_STORAGE_KEY);
+    if (!stored) return {};
+    const parsed = JSON.parse(stored) as Record<string, StoreTimerRecord>;
+    if (!parsed || typeof parsed !== "object") return {};
+    return Object.fromEntries(
+      Object.entries(parsed).map(([codigoLoja, record]) => [
+        codigoLoja,
+        normalizeStoreTimerRecord(codigoLoja, record),
+      ])
+    );
+  } catch (error) {
+    console.error("Erro ao carregar timers de loja", error);
+    return {};
+  }
+};
+
 export const getGroupedCalls = (calls: ActiveCall[]): GroupedCallBucket[] => {
   const relevantCalls = calls.filter((call) => call.status !== "open");
   const accumulator = new Map<string, Map<string, ActiveCall[]>>();
@@ -193,6 +238,9 @@ export const ServiceManagerProvider = ({
   children: ReactNode;
 }) => {
   const [calls, setCalls] = useState<ActiveCall[]>(() => loadStoredCalls());
+  const [storeTimers, setStoreTimers] = useState<Record<string, StoreTimerRecord>>(
+    () => loadStoredStoreTimers()
+  );
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -205,6 +253,18 @@ export const ServiceManagerProvider = ({
       console.error("Erro ao salvar chamados no Local Storage", error);
     }
   }, [calls]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(
+        STORE_TIMERS_STORAGE_KEY,
+        JSON.stringify(storeTimers)
+      );
+    } catch (error) {
+      console.error("Erro ao salvar timers de loja", error);
+    }
+  }, [storeTimers]);
 
   const addCall = useCallback((payload: NewCallPayload) => {
     setCalls((prev) => {
@@ -226,6 +286,15 @@ export const ServiceManagerProvider = ({
       };
 
       return [newCall, ...prev];
+    });
+    setStoreTimers((prev) => {
+      if (prev[payload.codigoLoja]) {
+        return prev;
+      }
+      return {
+        ...prev,
+        [payload.codigoLoja]: normalizeStoreTimerRecord(payload.codigoLoja, prev[payload.codigoLoja]),
+      };
     });
   }, []);
 
@@ -274,25 +343,19 @@ export const ServiceManagerProvider = ({
     []
   );
 
-  const completeCall = useCallback((id: string) => {
+  const completeCall = useCallback((id: string, totalMinutes?: number) => {
     setCalls((prev) =>
-      prev.map((call) => {
-        if (call.id !== id) return call;
-        let additionalMinutes = 0;
-        if (call.timeStarted) {
-          additionalMinutes = Math.max(
-            0,
-            Math.round((Date.now() - call.timeStarted) / 60000)
-          );
-        }
-        return {
-          ...call,
-          status: "completed",
-          timeStarted: null,
-          timeTotalServiceMinutes:
-            call.timeTotalServiceMinutes + additionalMinutes,
-        };
-      })
+      prev.map((call) =>
+        call.id === id
+          ? {
+              ...call,
+              status: "completed",
+              timeStarted: null,
+              timeTotalServiceMinutes:
+                totalMinutes ?? call.timeTotalServiceMinutes,
+            }
+          : call
+      )
     );
   }, []);
 
@@ -310,82 +373,115 @@ export const ServiceManagerProvider = ({
     );
   }, []);
 
-  const startCallTimer = useCallback((id: string, startedAt?: number) => {
-    const startTimestamp = startedAt ?? Date.now();
-    setCalls((prev) =>
-      prev.map((call) => {
-        if (call.id === id) {
-          return {
-            ...call,
-            timeStarted: startTimestamp,
-          };
+  const startStoreTimer = useCallback(
+    (codigoLoja: string, startedAt?: number) => {
+      const startTimestamp = startedAt ?? Date.now();
+      setStoreTimers((prev) => {
+        const next = { ...prev };
+
+        for (const [store, record] of Object.entries(next)) {
+          if (record.timeStarted !== null && store !== codigoLoja) {
+            const elapsed = Math.max(
+              0,
+              Math.round((startTimestamp - record.timeStarted) / 60000)
+            );
+            next[store] = {
+              ...record,
+              totalMinutes: record.totalMinutes + elapsed,
+              timeStarted: null,
+            };
+          }
         }
 
-        if (call.timeStarted !== null) {
-          return {
-            ...call,
+        const current = next[codigoLoja] ?? normalizeStoreTimerRecord(codigoLoja);
+        next[codigoLoja] = {
+          ...current,
+          timeStarted: startTimestamp,
+        };
+
+        return next;
+      });
+    },
+    []
+  );
+
+  const stopStoreTimer = useCallback(
+    (codigoLoja: string, additionalMinutes: number) => {
+      setStoreTimers((prev) => {
+        const current = prev[codigoLoja];
+        if (!current) {
+          return prev;
+        }
+        return {
+          ...prev,
+          [codigoLoja]: {
+            ...current,
             timeStarted: null,
-          };
-        }
+            totalMinutes:
+              current.totalMinutes + Math.max(0, Math.round(additionalMinutes)),
+          },
+        };
+      });
+    },
+    []
+  );
 
-        return call;
-      })
-    );
+  const resetStoreTimer = useCallback((codigoLoja: string) => {
+    setStoreTimers((prev) => {
+      const current = prev[codigoLoja];
+      if (!current) return prev;
+      return {
+        ...prev,
+        [codigoLoja]: {
+          codigoLoja,
+          timeStarted: null,
+          totalMinutes: 0,
+        },
+      };
+    });
   }, []);
 
-  const stopCallTimer = useCallback((id: string, additionalMinutes: number) => {
-    setCalls((prev) =>
-      prev.map((call) =>
-        call.id === id
-          ? {
-              ...call,
-              timeStarted: null,
-              timeTotalServiceMinutes:
-                call.timeTotalServiceMinutes + Math.max(0, additionalMinutes),
-            }
-          : call
-      )
-    );
-  }, []);
-
-  const resetCallTimer = useCallback((id: string) => {
-    setCalls((prev) =>
-      prev.map((call) =>
-        call.id === id
-          ? {
-              ...call,
-              timeStarted: null,
-              timeTotalServiceMinutes: 0,
-            }
-          : call
-      )
-    );
-  }, []);
+  const getStoreTotalMinutes = useCallback(
+    (codigoLoja: string) => {
+      const record = storeTimers[codigoLoja];
+      if (!record) return 0;
+      let total = record.totalMinutes;
+      if (record.timeStarted) {
+        total += Math.max(0, Math.round((Date.now() - record.timeStarted) / 60000));
+      }
+      return total;
+    },
+    [storeTimers]
+  );
 
   const value = useMemo<ServiceManagerContextValue>(() => {
     const activeCalls = calls.filter((call) => call.status !== "archived");
     return {
       calls,
       activeCalls,
+      storeTimers,
       addCall,
       removeCall,
       updatePhotoStatus,
       completeCall,
       archiveAllCompleted,
-      startCallTimer,
-      stopCallTimer,
-      resetCallTimer,
+      startStoreTimer,
+      stopStoreTimer,
+      resetStoreTimer,
+      getStoreTotalMinutes,
     };
   }, [
     calls,
+    storeTimers,
     addCall,
     removeCall,
     updatePhotoStatus,
     completeCall,
     archiveAllCompleted,
-    startCallTimer,
-    stopCallTimer,
-    resetCallTimer,
+    startStoreTimer,
+    stopStoreTimer,
+    resetStoreTimer,
+    getStoreTotalMinutes,
   ]);
 
   return (

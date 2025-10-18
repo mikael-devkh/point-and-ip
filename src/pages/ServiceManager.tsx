@@ -25,6 +25,7 @@ import { calculateBilling } from "@/utils/billing-calculator";
 import {
   ActiveCall,
   RequiredMediaType,
+  StoreTimerRecord,
   getGroupedCalls,
   useServiceManager,
 } from "@/hooks/use-service-manager";
@@ -114,12 +115,16 @@ const formatDateLabel = (dateIso: string) => {
 
 const ActiveCallCard = ({
   call,
+  storeRecord,
+  storeMinutes,
   onUploadMedia,
   onRemoveMedia,
   onComplete,
   onRemove,
 }: {
   call: ActiveCall;
+  storeRecord?: StoreTimerRecord;
+  storeMinutes: number;
   onUploadMedia: (media: RequiredMediaType, file: File) => Promise<void>;
   onRemoveMedia: (media: RequiredMediaType) => void;
   onComplete: () => void;
@@ -177,12 +182,12 @@ const ActiveCallCard = ({
           <div className="flex items-center gap-2">
             <Clock className="h-4 w-4 text-primary" />
             <span className="font-medium">
-              Tempo registrado: {formatMinutes(call.timeTotalServiceMinutes)}
+              Tempo registrado: {formatMinutes(storeMinutes)}
             </span>
           </div>
-          {call.timeStarted && (
+          {storeRecord?.timeStarted && (
             <p className="mt-1 text-xs text-muted-foreground">
-              Check-in em andamento desde {new Date(call.timeStarted).toLocaleTimeString("pt-BR")}
+              Check-in em andamento desde {new Date(storeRecord.timeStarted).toLocaleTimeString("pt-BR")}
             </p>
           )}
         </div>
@@ -301,14 +306,16 @@ const ServiceManager = () => {
   const {
     calls,
     activeCalls,
+    storeTimers,
     addCall,
     removeCall,
     updatePhotoStatus,
     completeCall,
     archiveAllCompleted,
-    startCallTimer,
-    stopCallTimer,
-    resetCallTimer,
+    startStoreTimer,
+    stopStoreTimer,
+    resetStoreTimer,
+    getStoreTotalMinutes,
   } = useServiceManager();
 
   const {
@@ -323,7 +330,7 @@ const ServiceManager = () => {
   const [codigoLoja, setCodigoLoja] = useState("");
   const [fsa, setFsa] = useState("");
   const [pdv, setPdv] = useState("");
-  const [timerCallId, setTimerCallId] = useState<string>("");
+  const [timerStoreId, setTimerStoreId] = useState<string>("");
 
   const billing = useMemo(
     () => calculateBilling(activeCalls.length),
@@ -335,6 +342,10 @@ const ServiceManager = () => {
     [activeCalls]
   );
 
+  const openStoreCodes = useMemo(() => {
+    return Array.from(new Set(openCalls.map((call) => call.codigoLoja)));
+  }, [openCalls]);
+
   const completedPending = useMemo(
     () => activeCalls.filter((call) => call.status === "completed"),
     [activeCalls]
@@ -342,28 +353,50 @@ const ServiceManager = () => {
 
   const groupedHistory = useMemo(() => getGroupedCalls(calls), [calls]);
 
-  useEffect(() => {
-    if (openCalls.length === 0) {
-      setTimerCallId("");
-      return;
+  const runningStore = useMemo(() => {
+    const activeRecord = Object.values(storeTimers).find(
+      (record) => record.timeStarted !== null
+    );
+    return activeRecord?.codigoLoja ?? "";
+  }, [storeTimers]);
+
+  const availableStoreOptions = useMemo(() => {
+    const codes = new Set(openStoreCodes);
+    if (runningStore) {
+      codes.add(runningStore);
     }
-    if (!timerCallId) {
-      setTimerCallId(openCalls[0].id);
-      return;
-    }
-    const exists = openCalls.some((call) => call.id === timerCallId);
-    if (!exists) {
-      setTimerCallId(openCalls[0].id);
-    }
-  }, [openCalls, timerCallId]);
+    return Array.from(codes);
+  }, [openStoreCodes, runningStore]);
 
   useEffect(() => {
-    if (!timerCallId) return;
-    const selected = openCalls.find((call) => call.id === timerCallId);
-    if (!selected) {
+    if (runningStore) {
+      setTimerStoreId(runningStore);
+      return;
+    }
+    if (availableStoreOptions.length === 0) {
+      setTimerStoreId("");
+      return;
+    }
+    if (!timerStoreId || !availableStoreOptions.includes(timerStoreId)) {
+      setTimerStoreId(availableStoreOptions[0]);
+    }
+  }, [runningStore, availableStoreOptions, timerStoreId]);
+
+  useEffect(() => {
+    if (!runningStore && isRunning) {
       resetTimer();
     }
-  }, [openCalls, timerCallId, resetTimer]);
+  }, [runningStore, isRunning, resetTimer]);
+
+  const selectedStoreMinutes = useMemo(() => {
+    if (!timerStoreId) return 0;
+    return getStoreTotalMinutes(timerStoreId);
+  }, [
+    timerStoreId,
+    getStoreTotalMinutes,
+    elapsedTimeMinutes,
+    storeTimers,
+  ]);
 
   const handleAddCall = () => {
     if (!codigoLoja.trim() || !fsa.trim()) {
@@ -408,11 +441,6 @@ const ServiceManager = () => {
   };
 
   const handleRemove = (callId: string) => {
-    if (timerCallId === callId) {
-      resetTimer();
-      resetCallTimer(callId);
-      setTimerCallId("");
-    }
     removeCall(callId);
     toast.success("Chamado removido.");
   };
@@ -426,24 +454,15 @@ const ServiceManager = () => {
       return;
     }
 
-    let additionalMinutes = 0;
-    if (timerCallId === call.id && isRunning) {
-      additionalMinutes = stopTimer();
-      stopCallTimer(call.id, additionalMinutes);
-      resetTimer();
-      setTimerCallId("");
-    }
-
     const finalCall: ActiveCall = {
       ...call,
       status: "completed",
       timeStarted: null,
-      timeTotalServiceMinutes:
-        call.timeTotalServiceMinutes + Math.max(0, additionalMinutes),
+      timeTotalServiceMinutes: getStoreTotalMinutes(call.codigoLoja),
     };
 
     await generateZipMock(finalCall);
-    completeCall(call.id);
+    completeCall(call.id, finalCall.timeTotalServiceMinutes);
     toast.success("Chamado pronto para faturamento! Evidências exportadas.");
   };
 
@@ -453,48 +472,59 @@ const ServiceManager = () => {
   };
 
   const handleCheckIn = () => {
-    if (!timerCallId) {
-      toast.error("Selecione um chamado para iniciar o check-in.");
+    if (!timerStoreId) {
+      toast.error("Selecione uma loja para iniciar o check-in.");
       return;
     }
 
-    const selected = openCalls.find((call) => call.id === timerCallId);
-    if (!selected) {
-      toast.error("Chamado selecionado não está disponível.");
+    const hasOpenCall = openCalls.some(
+      (call) => call.codigoLoja === timerStoreId
+    );
+    if (!hasOpenCall) {
+      toast.error("Nenhum chamado ativo para esta loja.");
       return;
     }
 
-    if (isRunning && timerCallId) {
-      const minutes = stopTimer();
-      stopCallTimer(timerCallId, minutes);
+    const record = storeTimers[timerStoreId];
+    if (record?.timeStarted) {
+      toast.info("Já existe um check-in em andamento para esta loja.");
+      return;
     }
 
     const startedAt = startTimer();
-    startCallTimer(timerCallId, startedAt);
-    toast.success(`Check-in iniciado para FSA ${selected.fsa}.`);
+    startStoreTimer(timerStoreId, startedAt);
+    toast.success(`Check-in iniciado na loja ${timerStoreId}.`);
   };
 
   const handleCheckOut = () => {
-    if (!timerCallId) {
-      toast.error("Selecione um chamado para encerrar o check-in.");
+    if (!timerStoreId) {
+      toast.error("Selecione uma loja para encerrar o check-in.");
+      return;
+    }
+
+    const record = storeTimers[timerStoreId];
+    if (!record || !record.timeStarted) {
+      toast.info("Nenhum check-in ativo para esta loja.");
       return;
     }
 
     const minutes = stopTimer();
-    stopCallTimer(timerCallId, minutes);
+    stopStoreTimer(timerStoreId, minutes);
     toast.success(
       minutes
-        ? `Check-out registrado (+${minutes} min).`
-        : "Check-out registrado sem tempo adicional."
+        ? `Check-out registrado na loja ${timerStoreId} (+${minutes} min).`
+        : `Check-out registrado na loja ${timerStoreId}.`
     );
   };
 
   const handleTimerReset = () => {
-    if (timerCallId) {
-      resetCallTimer(timerCallId);
+    if (timerStoreId) {
+      resetStoreTimer(timerStoreId);
+      toast.info(`Tempo da loja ${timerStoreId} zerado.`);
+    } else {
+      toast.info("Timer zerado.");
     }
     resetTimer();
-    toast.info("Timer zerado.");
   };
 
   return (
@@ -567,19 +597,19 @@ const ServiceManager = () => {
                 </CardHeader>
                 <CardContent className="space-y-4 text-sm">
                   <div className="space-y-1">
-                    <Label>Selecionar chamado</Label>
+                    <Label>Selecionar loja</Label>
                     <Select
-                      value={timerCallId}
-                      onValueChange={setTimerCallId}
-                      disabled={openCalls.length === 0}
+                      value={timerStoreId}
+                      onValueChange={setTimerStoreId}
+                      disabled={availableStoreOptions.length === 0}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Sem chamados em aberto" />
+                        <SelectValue placeholder="Nenhuma loja em atendimento" />
                       </SelectTrigger>
                       <SelectContent>
-                        {openCalls.map((call) => (
-                          <SelectItem key={call.id} value={call.id}>
-                            {call.fsa} • Loja {call.codigoLoja}
+                        {availableStoreOptions.map((storeCode) => (
+                          <SelectItem key={storeCode} value={storeCode}>
+                            Loja {storeCode}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -594,7 +624,7 @@ const ServiceManager = () => {
                       {timeDisplay}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Total acumulado: {elapsedTimeMinutes} min
+                      Total acumulado na loja: {formatMinutes(selectedStoreMinutes)}
                     </p>
                   </div>
 
@@ -685,6 +715,8 @@ const ServiceManager = () => {
                           <ActiveCallCard
                             key={call.id}
                             call={call}
+                            storeRecord={storeTimers[call.codigoLoja]}
+                            storeMinutes={getStoreTotalMinutes(call.codigoLoja)}
                             onUploadMedia={(media, file) =>
                               handleMediaUpload(call.id, media, file)
                             }
