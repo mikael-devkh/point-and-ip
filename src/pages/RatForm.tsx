@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/accordion";
 import { Navigation } from "@/components/Navigation";
 import { RatHistoryList, RatHistoryEntry } from "@/components/RatHistoryList";
-import { FileText, Printer, RotateCcw } from "lucide-react";
+import { FileText, Printer, RotateCcw, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { generateRatPDF } from "@/utils/ratPdfGenerator";
 import { RatFormData } from "@/types/rat";
@@ -25,9 +25,9 @@ import {
   origemEquipamentoOptions,
   pecasCabosOptions,
   pecasImpressoraOptions,
-  sampleRatFormData,
 } from "@/data/ratOptions";
 import { useHapticFeedback } from "@/hooks/use-haptic-feedback";
+import { useRatAutofill } from "@/context/RatAutofillContext";
 
 const COMMON_PROBLEMS = [
   "Não liga",
@@ -56,6 +56,7 @@ const RatForm = () => {
   const [selectedProblems, setSelectedProblems] = useState<string[]>([]);
   const [ratHistory, setRatHistory] = useState<RatHistoryEntry[]>([]);
   const { trigger: triggerHaptic } = useHapticFeedback();
+  const { autofillData, clearAutofillData } = useRatAutofill();
 
   const toggleListValue = (list: string[], value: string, checked: boolean) => {
     if (checked) {
@@ -67,12 +68,25 @@ const RatForm = () => {
   const buildCheckboxId = (prefix: string, value: string) =>
     `${prefix}-${value}`.replace(/[^a-zA-Z0-9-_]/g, "-");
 
-  const handleUseSampleData = () => {
-    const sampleData = cloneRatFormData(sampleRatFormData);
-    setFormData(sampleData);
-    setSelectedProblems(extractCommonProblems(sampleData.defeitoProblema));
-    toast.success("Formulário preenchido com dados de teste.");
-    triggerHaptic(60);
+  const handleApplyAutofill = () => {
+    if (!autofillData.isAvailable) {
+      return;
+    }
+
+    setFormData((previous) => ({
+      ...previous,
+      defeitoProblema: autofillData.defeito,
+      diagnosticoTestesRealizados: autofillData.diagnostico,
+      solucaoProblema: autofillData.solucao,
+    }));
+    setSelectedProblems(extractCommonProblems(autofillData.defeito));
+    toast.success(
+      autofillData.title
+        ? `Laudo "${autofillData.title}" aplicado ao formulário.`
+        : "Laudo sugerido aplicado ao formulário.",
+    );
+    triggerHaptic(70);
+    clearAutofillData();
   };
 
   const handleResetForm = () => {
@@ -213,6 +227,13 @@ const RatForm = () => {
           <div className="grid gap-6 lg:grid-cols-[2fr,1fr]">
             <Card className="p-6 space-y-6">
               <div className="flex flex-wrap justify-end gap-2">
+                {autofillData.isAvailable && (
+                  <Button type="button" variant="secondary" onClick={handleApplyAutofill}>
+                    <Wand2 className="mr-2 h-4 w-4" />
+                    Aplicar Laudo Sugerido
+                    {autofillData.title ? ` (${autofillData.title})` : ""}
+                  </Button>
+                )}
                 <Button type="button" variant="outline" onClick={handleResetForm}>
                   <RotateCcw className="mr-2 h-4 w-4" />
                   Limpar formulário

@@ -1,12 +1,13 @@
-import { Procedure, ChecklistStep, mockProcedures, mockTroubleshootingFlow } from "@/data/troubleshootingData";
+import { Procedure, mockProcedures } from "@/data/troubleshootingData";
+import { RatTemplate, ratTemplates } from "@/data/ratTemplatesData";
 import { toast } from "sonner";
 
 const LOCAL_STORAGE_KEY_PROCEDURES = "kb_procedures_data";
-const LOCAL_STORAGE_KEY_CHECKLIST = "kb_checklist_data";
+const LOCAL_STORAGE_KEY_TEMPLATES = "rat_templates_data";
 
-interface EditableData {
+interface EditableSnapshot {
   procedures: Procedure[];
-  flow: ChecklistStep[];
+  templates: RatTemplate[];
 }
 
 // Helper para fazer parse de JSON com segurança e tratamento de erro
@@ -27,47 +28,45 @@ function safeParseJson<T>(jsonString: string | null, fallbackData: T): T {
   }
 }
 
-// Função principal para carregar dados: prioriza Local Storage, se falhar, usa mock
-export function loadEditableData(): EditableData {
-  const storedProcedures = typeof window !== "undefined" ? localStorage.getItem(LOCAL_STORAGE_KEY_PROCEDURES) : null;
-  const storedFlow = typeof window !== "undefined" ? localStorage.getItem(LOCAL_STORAGE_KEY_CHECKLIST) : null;
-
-  return {
-    procedures: safeParseJson(storedProcedures, mockProcedures),
-    flow: safeParseJson(storedFlow, mockTroubleshootingFlow),
-  };
+export function loadEditableProcedures(): Procedure[] {
+  const storedProcedures =
+    typeof window !== "undefined" ? localStorage.getItem(LOCAL_STORAGE_KEY_PROCEDURES) : null;
+  return safeParseJson(storedProcedures, mockProcedures);
 }
 
-// Função para salvar Procedimentos no Local Storage
+export function loadEditableTemplates(): RatTemplate[] {
+  const storedTemplates =
+    typeof window !== "undefined" ? localStorage.getItem(LOCAL_STORAGE_KEY_TEMPLATES) : null;
+  return safeParseJson(storedTemplates, ratTemplates);
+}
+
 export function saveProceduresToLocalStorage(data: Procedure[]) {
   try {
     localStorage.setItem(LOCAL_STORAGE_KEY_PROCEDURES, JSON.stringify(data, null, 2));
-    toast.success("Procedimentos salvos! Recarregue a página de Diagnóstico.");
   } catch (error) {
     console.error("Erro ao salvar procedimentos no Local Storage:", error);
     toast.error("Erro ao salvar procedimentos.");
   }
 }
 
-// Função para salvar Flow do Checklist no Local Storage
-export function saveFlowToLocalStorage(data: ChecklistStep[]) {
+export function saveTemplatesToLocalStorage(data: RatTemplate[]) {
   try {
-    localStorage.setItem(LOCAL_STORAGE_KEY_CHECKLIST, JSON.stringify(data, null, 2));
-    toast.success("Checklist Flow salvo! Recarregue a página de Diagnóstico.");
+    localStorage.setItem(LOCAL_STORAGE_KEY_TEMPLATES, JSON.stringify(data, null, 2));
   } catch (error) {
-    console.error("Erro ao salvar flow no Local Storage:", error);
-    toast.error("Erro ao salvar flow.");
+    console.error("Erro ao salvar templates no Local Storage:", error);
+    toast.error("Erro ao salvar templates de RAT.");
   }
 }
 
-// Função para apagar dados e retornar aos mockados
-export function resetToDefaults(): EditableData {
-  localStorage.removeItem(LOCAL_STORAGE_KEY_PROCEDURES);
-  localStorage.removeItem(LOCAL_STORAGE_KEY_CHECKLIST);
-  toast.info("Dados de edição removidos. A aplicação usará os dados hardcoded (mockados).");
+export function resetToDefaults(): EditableSnapshot {
+  if (typeof window !== "undefined") {
+    localStorage.removeItem(LOCAL_STORAGE_KEY_PROCEDURES);
+    localStorage.removeItem(LOCAL_STORAGE_KEY_TEMPLATES);
+  }
+  toast.info("Dados locais removidos. Os valores padrão foram restaurados.");
 
   return {
     procedures: mockProcedures,
-    flow: mockTroubleshootingFlow,
+    templates: ratTemplates,
   };
 }
