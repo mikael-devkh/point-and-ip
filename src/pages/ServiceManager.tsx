@@ -51,6 +51,20 @@ import {
   Video,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "../context/AuthContext";
+import { db } from "../firebase";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { Textarea } from "../components/ui/textarea";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../components/ui/alert-dialog";
 
 const REQUIRED_MEDIA_LABELS: Record<
   RequiredMediaType,
@@ -343,6 +357,7 @@ const ServiceManager = () => {
     stopStoreTimer,
     resetStoreTimer,
     getStoreTotalMinutes,
+    adjustStoreTime,
   } = useServiceManager();
 
   const {
@@ -358,8 +373,15 @@ const ServiceManager = () => {
   const [fsa, setFsa] = useState("");
   const [pdv, setPdv] = useState("");
   const [timerStoreId, setTimerStoreId] = useState<string>("");
+  const { user } = useAuth();
+  const [isAdjustDialogOpen, setIsAdjustDialogOpen] = useState(false);
+  const [adjustMinutesValue, setAdjustMinutesValue] = useState("0");
+  const [adjustJustification, setAdjustJustification] = useState("");
 
-  const billing = useMemo(() => calculateBilling(activeCalls), [activeCalls]);
+  const billing = useMemo(
+    () => calculateBilling(activeCalls, storeTimers),
+    [activeCalls, storeTimers],
+  );
 
   const openCalls = useMemo(
     () => activeCalls.filter((call) => call.status === "open"),
@@ -411,6 +433,15 @@ const ServiceManager = () => {
       resetTimer();
     }
   }, [runningStore, isRunning, resetTimer]);
+
+  useEffect(() => {
+    if (timerStoreId) {
+      const minutes = getStoreTotalMinutes(timerStoreId);
+      setAdjustMinutesValue(String(minutes));
+    } else {
+      setAdjustMinutesValue("0");
+    }
+  }, [getStoreTotalMinutes, timerStoreId]);
 
   const selectedStoreMinutes = useMemo(() => {
     if (!timerStoreId) return 0;
@@ -490,9 +521,39 @@ const ServiceManager = () => {
     toast.success("Chamado pronto para faturamento! Evidências exportadas.");
   };
 
-  const handleArchiveCompleted = () => {
-    archiveAllCompleted();
-    toast.info("Chamados concluídos movidos para o histórico.");
+  const handleArchiveCompleted = async () => {
+    if (completedPending.length === 0) {
+      toast.info("Não há chamados concluídos para arquivar.");
+      return;
+    }
+
+    if (!user) {
+      toast.error("Faça login novamente para arquivar os chamados.");
+      return;
+    }
+
+    try {
+      const reportsCollection = collection(db, "serviceReports");
+      await Promise.all(
+        completedPending.map((call) =>
+          addDoc(reportsCollection, {
+            userId: user.uid,
+            codigoLoja: call.codigoLoja,
+            fsa: call.fsa,
+            pdv: call.pdv ?? null,
+            durationMinutes: call.timeTotalServiceMinutes,
+            status: "archived",
+            archivedAt: serverTimestamp(),
+          }),
+        ),
+      );
+      toast.success("Chamados arquivados e registrados para relatórios.");
+    } catch (error) {
+      console.error("Erro ao registrar chamados arquivados:", error);
+      toast.error("Não foi possível registrar os chamados arquivados no Firestore.");
+    } finally {
+      archiveAllCompleted();
+    }
   };
 
   const handleCheckIn = () => {
@@ -549,6 +610,39 @@ const ServiceManager = () => {
       toast.info("Timer zerado.");
     }
     resetTimer();
+  };
+
+  const handleOpenAdjustDialog = () => {
+    if (!timerStoreId) {
+      toast.error("Selecione uma loja para ajustar o tempo.");
+      return;
+    }
+    const minutes = getStoreTotalMinutes(timerStoreId);
+    setAdjustMinutesValue(String(minutes));
+    setAdjustJustification("");
+    setIsAdjustDialogOpen(true);
+  };
+
+  const handleConfirmAdjust = () => {
+    if (!timerStoreId) {
+      setIsAdjustDialogOpen(false);
+      return;
+    }
+    const parsedMinutes = Number(adjustMinutesValue);
+    if (!Number.isFinite(parsedMinutes) || parsedMinutes < 0) {
+      toast.error("Informe um valor de minutos válido.");
+      return;
+    }
+    adjustStoreTime(timerStoreId, parsedMinutes);
+    toast.success(
+      `Tempo da loja ${timerStoreId} ajustado para ${formatMinutes(Math.round(parsedMinutes))}.`,
+    );
+    if (adjustJustification.trim()) {
+      console.info(
+        `Justificativa de ajuste de tempo (${timerStoreId}): ${adjustJustification.trim()}`,
+      );
+    }
+    setIsAdjustDialogOpen(false);
   };
 
   return (
@@ -650,6 +744,17 @@ const ServiceManager = () => {
                     <p className="text-xs text-muted-foreground">
                       Total acumulado na loja: {formatMinutes(selectedStoreMinutes)}
                     </p>
+                    <div className="mt-3 flex justify-center">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleOpenAdjustDialog}
+                        disabled={!timerStoreId}
+                        className="gap-2"
+                      >
+                        Ajustar tempo
+                      </Button>
+                    </div>
                   </div>
 
                   <div className="flex flex-wrap gap-2">
@@ -687,26 +792,35 @@ const ServiceManager = () => {
                     </p>
                     <p className="text-3xl font-bold">{billing.totalActiveCount}</p>
                   </div>
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     <div className="flex items-center justify-between text-lg font-bold">
                       <span>Total estimado</span>
                       <span>R$ {billing.totalFee.toFixed(2)}</span>
                     </div>
                     <Separator />
                     {Object.entries(billing.detailsByStore).length ? (
-                      <div className="space-y-2">
+                      <div className="space-y-3">
                         {Object.entries(billing.detailsByStore).map(
                           ([storeCode, detail]) => (
                             <div
                               key={storeCode}
-                              className="flex items-center justify-between rounded-md border border-border/60 bg-muted/30 px-3 py-2 text-xs sm:text-sm"
+                              className="rounded-md border border-border/60 bg-muted/30 px-3 py-2 text-xs sm:text-sm"
                             >
-                              <span className="text-muted-foreground">
-                                Loja {storeCode} • {detail.count} chamado(s)
-                              </span>
-                              <span className="font-semibold">
-                                R$ {detail.fee.toFixed(2)}
-                              </span>
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-muted-foreground">
+                                  Loja {storeCode} • {detail.count} chamado(s)
+                                </span>
+                                <span className="font-semibold">
+                                  R$ {detail.fee.toFixed(2)}
+                                </span>
+                              </div>
+                              {detail.extraHours > 0 && (
+                                <p className="mt-1 text-[11px] text-muted-foreground sm:text-xs">
+                                  Horas extras: {detail.extraHours}h • Adicional tempo R$
+                                  {" "}
+                                  {detail.timeFee.toFixed(2)}
+                                </p>
+                              )}
                             </div>
                           ),
                         )}
@@ -716,9 +830,16 @@ const ServiceManager = () => {
                         Sem chamados ativos contabilizados no momento.
                       </p>
                     )}
-                  </div>
-                  <Separator />
-                  <div className="space-y-3">
+                    <div className="rounded-md border border-dashed border-primary/40 bg-primary/5 px-3 py-2 text-xs sm:text-sm">
+                      <div className="flex items-center justify-between">
+                        <span>Horas extras totais</span>
+                        <span>{billing.totalExtraHours}h</span>
+                      </div>
+                      <div className="mt-1 flex items-center justify-between">
+                        <span>Custo adicional de tempo</span>
+                        <span>R$ {billing.totalTimeFee.toFixed(2)}</span>
+                      </div>
+                    </div>
                     <p className="text-xs text-muted-foreground">
                       Valores adicionais por hora excedente (R$ 20,00) são aplicáveis após 120 minutos.
                     </p>
@@ -839,6 +960,47 @@ const ServiceManager = () => {
           </div>
         </div>
       </div>
+      <AlertDialog open={isAdjustDialogOpen} onOpenChange={setIsAdjustDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Ajustar tempo da loja {timerStoreId || "selecionada"}
+            </AlertDialogTitle>
+          <AlertDialogDescription>
+            Corrija o total de minutos trabalhados. O cronômetro será reiniciado a partir do
+            valor informado.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <Label htmlFor="adjustMinutes">Total de minutos</Label>
+            <Input
+              id="adjustMinutes"
+              type="number"
+              min="0"
+              value={adjustMinutesValue}
+              onChange={(event) => setAdjustMinutesValue(event.target.value)}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="adjustJustification">Justificativa (opcional)</Label>
+            <Textarea
+              id="adjustJustification"
+              placeholder="Ex: ajuste manual após troca de equipe"
+              value={adjustJustification}
+              onChange={(event) => setAdjustJustification(event.target.value)}
+              rows={3}
+            />
+          </div>
+        </div>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction onClick={handleConfirmAdjust}>
+            Salvar ajuste
+          </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };

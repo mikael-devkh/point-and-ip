@@ -11,6 +11,8 @@ import SupportCenter from "./pages/SupportCenter";
 import ServiceManager from "./pages/ServiceManager";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
+import ProfilePage from "./pages/ProfilePage";
+import ReportsPage from "./pages/ReportsPage";
 import { ServiceManagerProvider } from "./hooks/use-service-manager";
 import { RatAutofillProvider } from "./context/RatAutofillContext";
 import { useAuth } from "./context/AuthContext";
@@ -77,6 +79,22 @@ const App = () => (
                 element={(
                   <ProtectedRoute>
                     <ServiceManager />
+                  </ProtectedRoute>
+                )}
+              />
+              <Route
+                path="/profile"
+                element={(
+                  <ProtectedRoute>
+                    <ProfilePage />
+                  </ProtectedRoute>
+                )}
+              />
+              <Route
+                path="/reports"
+                element={(
+                  <ProtectedRoute>
+                    <ReportsPage />
                   </ProtectedRoute>
                 )}
               />

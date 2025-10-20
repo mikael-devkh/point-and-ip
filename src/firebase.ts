@@ -1,7 +1,7 @@
 import { initializeApp } from "firebase/app";
 // import { getAnalytics } from "firebase/analytics"; // Opcional: habilite se precisar de métricas
 import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { enableIndexedDbPersistence, getFirestore } from "firebase/firestore";
 
 // ATENÇÃO: em produção utilize variáveis de ambiente para proteger esta chave de API.
 const firebaseConfig = {
@@ -19,5 +19,11 @@ const app = initializeApp(firebaseConfig);
 
 const auth = getAuth(app);
 const db = getFirestore(app);
+
+if (typeof window !== "undefined") {
+  enableIndexedDbPersistence(db).catch((error) => {
+    console.warn("Não foi possível habilitar a persistência offline do Firestore:", error);
+  });
+}
 
 export { auth, db };

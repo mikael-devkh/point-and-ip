@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Card } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -20,7 +20,7 @@ import {
 } from "../components/ui/select";
 import { Navigation } from "../components/Navigation";
 import { RatHistoryList, RatHistoryEntry } from "../components/RatHistoryList";
-import { FileText, Printer, RotateCcw, Wand2 } from "lucide-react";
+import { FileText, History, Printer, RotateCcw, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { generateRatPDF } from "../utils/ratPdfGenerator";
 import { RatFormData } from "../types/rat";
@@ -31,14 +31,32 @@ import {
 } from "../data/ratOptions";
 import { useHapticFeedback } from "../hooks/use-haptic-feedback";
 import { useRatAutofill } from "../context/RatAutofillContext";
+import { useAuth } from "../context/AuthContext";
 
 const RAT_HISTORY_STORAGE_KEY = "ratHistory";
+const RAT_DRAFT_STORAGE_KEY = "ratFormDraft";
 
 const RatForm = () => {
-  const [formData, setFormData] = useState<RatFormData>(() => createEmptyRatFormData());
+  const { profile } = useAuth();
+  const getInitialFormData = useCallback(() => {
+    const base = createEmptyRatFormData();
+    if (profile?.nome) {
+      base.prestadorNome = profile.nome;
+    }
+    if (profile?.matricula) {
+      base.prestadorRgMatricula = profile.matricula;
+    }
+    return base;
+  }, [profile]);
+
+  const [formData, setFormData] = useState<RatFormData>(() => getInitialFormData());
   const [ratHistory, setRatHistory] = useState<RatHistoryEntry[]>([]);
   const { trigger: triggerHaptic } = useHapticFeedback();
   const { autofillData, clearAutofillData } = useRatAutofill();
+  const [draftAvailable, setDraftAvailable] = useState(false);
+  const draftLoadedRef = useRef(false);
+  const skipDraftSaveRef = useRef(false);
+  const draftSaveTimeoutRef = useRef<number | null>(null);
 
   const handleHouveTrocaChange = (value: string) => {
     setFormData((previous) => {
@@ -57,6 +75,36 @@ const RatForm = () => {
       };
     });
   };
+
+  const loadDraftFromStorage = useCallback(
+    (showToast: boolean) => {
+      if (typeof window === "undefined") {
+        return false;
+      }
+
+      try {
+        const stored = window.localStorage.getItem(RAT_DRAFT_STORAGE_KEY);
+        if (!stored) {
+          setDraftAvailable(false);
+          return false;
+        }
+
+        const parsed = JSON.parse(stored) as Partial<RatFormData>;
+        skipDraftSaveRef.current = true;
+        setFormData((previous) => ({ ...previous, ...parsed }));
+        setDraftAvailable(true);
+        if (showToast) {
+          toast.info("Rascunho da RAT recuperado automaticamente.");
+        }
+        return true;
+      } catch (error) {
+        console.error("Não foi possível recuperar o rascunho da RAT:", error);
+        return false;
+      }
+      return false;
+    },
+    [],
+  );
 
   const handleApplyAutofill = () => {
     if (!autofillData.isAvailable) {
@@ -79,10 +127,75 @@ const RatForm = () => {
   };
 
   const handleResetForm = () => {
-    setFormData(createEmptyRatFormData());
+    skipDraftSaveRef.current = true;
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem(RAT_DRAFT_STORAGE_KEY);
+    }
+    setDraftAvailable(false);
+    setFormData(getInitialFormData());
     toast.info("Formulário limpo.");
     triggerHaptic(40);
   };
+
+  useEffect(() => {
+    if (!draftLoadedRef.current) {
+      draftLoadedRef.current = true;
+      loadDraftFromStorage(true);
+    }
+  }, [loadDraftFromStorage]);
+
+  useEffect(() => {
+    if (profile) {
+      setFormData((previous) => {
+        const shouldUpdate =
+          (!!profile.nome && !previous.prestadorNome) ||
+          (!!profile.matricula && !previous.prestadorRgMatricula);
+        if (!shouldUpdate) {
+          return previous;
+        }
+        return {
+          ...previous,
+          prestadorNome: previous.prestadorNome || profile.nome || "",
+          prestadorRgMatricula:
+            previous.prestadorRgMatricula || profile.matricula || "",
+        };
+      });
+    }
+  }, [profile]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    if (skipDraftSaveRef.current) {
+      skipDraftSaveRef.current = false;
+      return;
+    }
+
+    if (draftSaveTimeoutRef.current) {
+      window.clearTimeout(draftSaveTimeoutRef.current);
+    }
+
+    draftSaveTimeoutRef.current = window.setTimeout(() => {
+      try {
+        window.localStorage.setItem(
+          RAT_DRAFT_STORAGE_KEY,
+          JSON.stringify(formData),
+        );
+        setDraftAvailable(true);
+      } catch (error) {
+        console.error("Não foi possível salvar o rascunho da RAT:", error);
+      }
+    }, 600);
+
+    return () => {
+      if (draftSaveTimeoutRef.current) {
+        window.clearTimeout(draftSaveTimeoutRef.current);
+        draftSaveTimeoutRef.current = null;
+      }
+    };
+  }, [formData]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -136,6 +249,11 @@ const RatForm = () => {
       });
       toast.success("PDF gerado com sucesso!");
       triggerHaptic(80);
+      skipDraftSaveRef.current = true;
+      if (typeof window !== "undefined") {
+        window.localStorage.removeItem(RAT_DRAFT_STORAGE_KEY);
+      }
+      setDraftAvailable(false);
     } catch (error) {
       toast.error("Erro ao gerar PDF");
       console.error(error);
@@ -153,6 +271,15 @@ const RatForm = () => {
     setRatHistory([]);
     toast.info("Histórico de RAT limpo.");
     triggerHaptic(50);
+  };
+
+  const handleRestoreDraft = () => {
+    const restored = loadDraftFromStorage(false);
+    if (restored) {
+      toast.success("Rascunho recuperado.");
+    } else {
+      toast.info("Nenhum rascunho salvo disponível.");
+    }
   };
 
   return (
@@ -190,6 +317,14 @@ const RatForm = () => {
                     {autofillData.title ? ` (${autofillData.title})` : ""}
                   </Button>
                 )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleRestoreDraft}
+                  disabled={!draftAvailable}
+                >
+                  <History className="mr-2 h-4 w-4" /> Recuperar rascunho
+                </Button>
                 <Button type="button" variant="outline" onClick={handleResetForm}>
                   <RotateCcw className="mr-2 h-4 w-4" />
                   Limpar formulário

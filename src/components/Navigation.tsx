@@ -1,6 +1,14 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { DollarSign, FileText, Menu, Network, NotebookPen } from "lucide-react";
+import {
+  BarChart3,
+  DollarSign,
+  FileText,
+  Menu,
+  Network,
+  NotebookPen,
+  UserCircle2,
+} from "lucide-react";
 import { cn } from "../lib/utils";
 import { ThemeToggle } from "./ThemeToggle";
 import { Button } from "./ui/button";
@@ -39,6 +47,16 @@ export const Navigation = () => {
       path: "/service-manager",
       label: "Chamados/Mídia",
       icon: DollarSign,
+    },
+    {
+      path: "/profile",
+      label: "Perfil",
+      icon: UserCircle2,
+    },
+    {
+      path: "/reports",
+      label: "Relatórios",
+      icon: BarChart3,
     },
   ];
 

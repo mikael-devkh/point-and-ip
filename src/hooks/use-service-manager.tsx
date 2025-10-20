@@ -79,6 +79,7 @@ interface ServiceManagerContextValue {
   stopStoreTimer: (codigoLoja: string, additionalMinutes: number) => void;
   resetStoreTimer: (codigoLoja: string) => void;
   getStoreTotalMinutes: (codigoLoja: string) => number;
+  adjustStoreTime: (codigoLoja: string, newTotalMinutes: number) => void;
 }
 
 const LOCAL_STORAGE_KEY = "service_manager_calls";
@@ -458,6 +459,20 @@ export const ServiceManagerProvider = ({
     [storeTimers]
   );
 
+  const adjustStoreTime = useCallback((codigoLoja: string, newTotalMinutes: number) => {
+    setStoreTimers((prev) => {
+      const current = prev[codigoLoja] ?? normalizeStoreTimerRecord(codigoLoja);
+      return {
+        ...prev,
+        [codigoLoja]: {
+          ...current,
+          totalMinutes: Math.max(0, Math.round(newTotalMinutes)),
+          timeStarted: null,
+        },
+      };
+    });
+  }, []);
+
   const value = useMemo<ServiceManagerContextValue>(() => {
     const activeCalls = calls.filter((call) => call.status !== "archived");
     return {
@@ -473,6 +488,7 @@ export const ServiceManagerProvider = ({
       stopStoreTimer,
       resetStoreTimer,
       getStoreTotalMinutes,
+      adjustStoreTime,
     };
   }, [
     calls,
@@ -486,6 +502,7 @@ export const ServiceManagerProvider = ({
     stopStoreTimer,
     resetStoreTimer,
     getStoreTotalMinutes,
+    adjustStoreTime,
   ]);
 
   return (
