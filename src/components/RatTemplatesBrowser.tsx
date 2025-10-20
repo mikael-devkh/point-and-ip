@@ -1,24 +1,24 @@
 import type { KeyboardEvent } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AssetType, RatTemplate, TemplateStatus } from "@/data/ratTemplatesData";
-import { EditableText } from "@/components/EditableText";
-import { cn } from "@/lib/utils";
+import { Card } from "./ui/card";
+import { ScrollArea } from "./ui/scroll-area";
+import { Button } from "./ui/button";
+import { Label } from "./ui/label";
+import { Textarea } from "./ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
+import { AssetType, RatTemplate, TemplateStatus } from "../data/ratTemplatesData";
+import { EditableText } from "./EditableText";
+import { cn } from "../lib/utils";
 import { toast } from "sonner";
-import { useRatAutofill } from "@/context/RatAutofillContext";
+import { useRatAutofill } from "../context/RatAutofillContext";
 import { Layers, Plus, RotateCcw, Trash2, Wand2 } from "lucide-react";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { Switch } from "@/components/ui/switch";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useAuth } from "@/context/AuthContext";
-import { db } from "@/firebase";
+import { useIsMobile } from "../hooks/use-mobile";
+import { Switch } from "./ui/switch";
+import { Skeleton } from "./ui/skeleton";
+import { useAuth } from "../context/AuthContext";
+import { db } from "../firebase";
 import {
   addDoc,
   collection,
@@ -30,7 +30,7 @@ import {
   where,
   writeBatch,
 } from "firebase/firestore";
-import { ratTemplates } from "@/data/ratTemplatesData";
+import { ratTemplates } from "../data/ratTemplatesData";
 
 const assetLabels: Record<AssetType, string> = {
   CPU: "CPU",

@@ -1,17 +1,17 @@
 import { useMemo, useState } from "react";
-import { Navigation } from "@/components/Navigation";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Badge } from "@/components/ui/badge";
+import { Navigation } from "../components/Navigation";
+import { Card } from "../components/ui/card";
+import { Input } from "../components/ui/input";
+import { ScrollArea } from "../components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../components/ui/accordion";
+import { Badge } from "../components/ui/badge";
 import { FileText, Layers, Search } from "lucide-react";
-import { Procedure } from "@/data/troubleshootingData";
-import { loadEditableProcedures, resetToDefaults } from "@/utils/data-editor-utils";
-import { RatTemplatesBrowser } from "@/components/RatTemplatesBrowser";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { cn } from "@/lib/utils";
+import { Procedure } from "../data/troubleshootingData";
+import { loadEditableProcedures, resetToDefaults } from "../utils/data-editor-utils";
+import { RatTemplatesBrowser } from "../components/RatTemplatesBrowser";
+import { useIsMobile } from "../hooks/use-mobile";
+import { cn } from "../lib/utils";
 import { toast } from "sonner";
 
 const renderProcedureContent = (content: string) =>

@@ -1,5 +1,5 @@
-import { Procedure, mockProcedures } from "@/data/troubleshootingData";
-import { RatTemplate, ratTemplates } from "@/data/ratTemplatesData";
+import { Procedure, mockProcedures } from "../data/troubleshootingData";
+import { RatTemplate, ratTemplates } from "../data/ratTemplatesData";
 import { toast } from "sonner";
 
 const LOCAL_STORAGE_KEY_PROCEDURES = "kb_procedures_data";

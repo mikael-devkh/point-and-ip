@@ -1,36 +1,36 @@
 import { useEffect, useState } from "react";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Card } from "../components/ui/card";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { Textarea } from "../components/ui/textarea";
+import { RadioGroup, RadioGroupItem } from "../components/ui/radio-group";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "@/components/ui/accordion";
+} from "../components/ui/accordion";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Navigation } from "@/components/Navigation";
-import { RatHistoryList, RatHistoryEntry } from "@/components/RatHistoryList";
+} from "../components/ui/select";
+import { Navigation } from "../components/Navigation";
+import { RatHistoryList, RatHistoryEntry } from "../components/RatHistoryList";
 import { FileText, Printer, RotateCcw, Wand2 } from "lucide-react";
 import { toast } from "sonner";
-import { generateRatPDF } from "@/utils/ratPdfGenerator";
-import { RatFormData } from "@/types/rat";
+import { generateRatPDF } from "../utils/ratPdfGenerator";
+import { RatFormData } from "../types/rat";
 import {
   cloneRatFormData,
   createEmptyRatFormData,
   origemEquipamentoOptions,
-} from "@/data/ratOptions";
-import { useHapticFeedback } from "@/hooks/use-haptic-feedback";
-import { useRatAutofill } from "@/context/RatAutofillContext";
+} from "../data/ratOptions";
+import { useHapticFeedback } from "../hooks/use-haptic-feedback";
+import { useRatAutofill } from "../context/RatAutofillContext";
 
 const RAT_HISTORY_STORAGE_KEY = "ratHistory";
 

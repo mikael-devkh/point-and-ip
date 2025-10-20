@@ -1,18 +1,18 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { DollarSign, FileText, Menu, Network, NotebookPen } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { ThemeToggle } from "@/components/ThemeToggle";
-import { Button } from "@/components/ui/button";
+import { cn } from "../lib/utils";
+import { ThemeToggle } from "./ThemeToggle";
+import { Button } from "./ui/button";
 import {
   Sheet,
   SheetClose,
   SheetContent,
   SheetTrigger,
-} from "@/components/ui/sheet";
-import { useAuth } from "@/context/AuthContext";
+} from "./ui/sheet";
+import { useAuth } from "../context/AuthContext";
 import { signOut } from "firebase/auth";
-import { auth } from "@/firebase";
+import { auth } from "../firebase";
 import { toast } from "sonner";
 
 export const Navigation = () => {

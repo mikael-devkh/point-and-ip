@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Card } from "./ui/card";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
 import { FileText, History } from "lucide-react";
-import { RatFormData } from "@/types/rat";
+import { RatFormData } from "../types/rat";
 
 export interface RatHistoryEntry {
   id: string;

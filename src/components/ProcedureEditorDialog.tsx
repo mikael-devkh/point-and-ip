@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { Button } from "./ui/button";
+import { Textarea } from "./ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -9,9 +9,9 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from "./ui/dialog";
 import { Edit, Save } from "lucide-react";
-import { Procedure } from "@/data/troubleshootingData";
+import { Procedure } from "../data/troubleshootingData";
 
 interface ProcedureEditorDialogProps {
   procedure: Procedure;

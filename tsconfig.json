@@ -3,13 +3,6 @@
   "references": [{ "path": "./tsconfig.app.json" }, { "path": "./tsconfig.node.json" }],
   "compilerOptions": {
     "baseUrl": ".",
-    "paths": {
-      "@/*": ["./src/*"],
-      "react-firebase-hooks/auth": ["./src/lib/react-firebase-hooks/auth.ts"],
-      "firebase/app": ["./src/lib/firebase/app.ts"],
-      "firebase/auth": ["./src/lib/firebase/auth.ts"],
-      "firebase/firestore": ["./src/lib/firebase/firestore.ts"]
-    },
     "noImplicitAny": false,
     "noUnusedParameters": false,
     "skipLibCheck": true,

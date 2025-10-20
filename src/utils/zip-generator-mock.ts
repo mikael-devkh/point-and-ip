@@ -1,4 +1,4 @@
-import { ActiveCall, RequiredMediaType } from "@/hooks/use-service-manager";
+import { ActiveCall, RequiredMediaType } from "../hooks/use-service-manager";
 
 const REQUIRED_MEDIA_ORDER: RequiredMediaType[] = [
   "serial",

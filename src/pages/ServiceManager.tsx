@@ -1,38 +1,38 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ChangeEvent } from "react";
-import { Navigation } from "@/components/Navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Label } from "@/components/ui/label";
+import { Navigation } from "../components/Navigation";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Input } from "../components/ui/input";
+import { Button } from "../components/ui/button";
+import { Badge } from "../components/ui/badge";
+import { Separator } from "../components/ui/separator";
+import { ScrollArea } from "../components/ui/scroll-area";
+import { Label } from "../components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "../components/ui/select";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "@/components/ui/accordion";
-import { calculateBilling } from "@/utils/billing-calculator";
+} from "../components/ui/accordion";
+import { calculateBilling } from "../utils/billing-calculator";
 import {
   ActiveCall,
   RequiredMediaType,
   StoreTimerRecord,
   getGroupedCalls,
   useServiceManager,
-} from "@/hooks/use-service-manager";
-import { useServiceTimer } from "@/hooks/use-service-timer";
-import { generateZipMock } from "@/utils/zip-generator-mock";
-import { fileToBase64 } from "@/utils/file-conversion";
-import { cn } from "@/lib/utils";
+} from "../hooks/use-service-manager";
+import { useServiceTimer } from "../hooks/use-service-timer";
+import { generateZipMock } from "../utils/zip-generator-mock";
+import { fileToBase64 } from "../utils/file-conversion";
+import { cn } from "../lib/utils";
 import {
   Archive,
   Camera,

@@ -6,9 +6,9 @@ import {
   StandardFonts,
   rgb,
 } from "pdf-lib";
-import ratTemplateUrl from "@/assets/rat-template.pdf?url";
-import { RatFormData } from "@/types/rat";
-import { origemEquipamentoOptions } from "@/data/ratOptions";
+import ratTemplateUrl from "../assets/rat-template.pdf?url";
+import { RatFormData } from "../types/rat";
+import { origemEquipamentoOptions } from "../data/ratOptions";
 
 const log = (...args: any[]) => console.debug("[RAT]", ...args);
 

@@ -1,4 +1,4 @@
-import { RatFormData } from "@/types/rat";
+import { RatFormData } from "../types/rat";
 
 interface PdfPosition {
   x: number;

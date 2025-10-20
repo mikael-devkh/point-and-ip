@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
-import { SearchForm } from "@/components/SearchForm";
-import { ResultCard } from "@/components/ResultCard";
-import { HistoryList, HistoryItem } from "@/components/HistoryList";
-import { Navigation } from "@/components/Navigation";
+import { SearchForm } from "../components/SearchForm";
+import { ResultCard } from "../components/ResultCard";
+import { HistoryList, HistoryItem } from "../components/HistoryList";
+import { Navigation } from "../components/Navigation";
 import { Network } from "lucide-react";
 import { toast } from "sonner";
-import { calcularIP, IPConfig } from "@/utils/ipCalculator";
-import { getStoreData } from "@/data/storesData";
+import { calcularIP, IPConfig } from "../utils/ipCalculator";
+import { getStoreData } from "../data/storesData";
 
 interface ResultData extends IPConfig {
   tipo: string;

@@ -1,7 +1,7 @@
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card } from "./ui/card";
+import { Button } from "./ui/button";
 import { Clock } from "lucide-react";
-import { IPConfig } from "@/utils/ipCalculator";
+import { IPConfig } from "../utils/ipCalculator";
 
 export interface HistoryItem extends IPConfig {
   tipo: string;

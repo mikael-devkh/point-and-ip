@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Input } from "./ui/input";
+import { Button } from "./ui/button";
 import { Check, Edit, X } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Textarea } from "@/components/ui/textarea";
+import { cn } from "../lib/utils";
+import { Textarea } from "./ui/textarea";
 
 interface EditableTextProps {
   initialValue: string;

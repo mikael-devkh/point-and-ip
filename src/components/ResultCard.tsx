@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { Card } from "@/components/ui/card";
+import { Card } from "./ui/card";
 import { Check, Copy } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "./ui/button";
 import { toast } from "sonner";
 
 interface ResultCardProps {
