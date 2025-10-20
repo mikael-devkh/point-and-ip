@@ -212,6 +212,8 @@ export const RatTemplatesBrowser = ({
   const isMobile = useIsMobile();
   const [activeMobileTab, setActiveMobileTab] = useState<"list" | "detail">("list");
   const [editingEnabled, setEditingEnabled] = useState(false);
+  const [templatesError, setTemplatesError] = useState<string | null>(null);
+  const [retryCounter, setRetryCounter] = useState(0);
   const editSwitchId = "templates-edit-mode";
 
   useEffect(() => {
@@ -241,10 +243,12 @@ export const RatTemplatesBrowser = ({
       setLoadingTemplates(false);
       setSelectedTemplateId(null);
       setTemplateDraft({ defeito: "", diagnostico: "", solucao: "" });
+      setTemplatesError(null);
       return;
     }
 
     setLoadingTemplates(true);
+    setTemplatesError(null);
     const templatesCollection = collection(db, "ratTemplates");
     const templatesQuery = query(templatesCollection, where("userId", "==", user.uid));
 
@@ -276,16 +280,18 @@ export const RatTemplatesBrowser = ({
 
         setTemplates(userTemplates);
         setLoadingTemplates(false);
+        setTemplatesError(null);
       },
       (error) => {
         console.error("Erro ao carregar templates de RAT:", error);
         toast.error("Não foi possível carregar seus templates de RAT.");
         setLoadingTemplates(false);
+        setTemplatesError("Não foi possível carregar seus templates. Verifique sua conexão e tente novamente.");
       },
     );
 
     return () => unsubscribe();
-  }, [loadingAuth, user]);
+  }, [loadingAuth, user, retryCounter]);
 
   const filteredTemplates = useMemo(() => {
     if (templateFilter === "all") {
@@ -605,7 +611,22 @@ export const RatTemplatesBrowser = ({
       )}
       <ScrollArea className="h-[500px] rounded-md border p-3 bg-background sm:p-4">
         <div className="space-y-3">
-          {filteredTemplates.length ? (
+          {templatesError ? (
+            <div className="flex h-full flex-col items-center justify-center gap-4 py-12 text-center">
+              <p className="text-sm text-destructive max-w-xs">
+                {templatesError}
+              </p>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setRetryCounter((count) => count + 1);
+                  setLoadingTemplates(true);
+                }}
+              >
+                Tentar novamente
+              </Button>
+            </div>
+          ) : filteredTemplates.length ? (
             filteredTemplates.map((template) => (
               <TemplateEditorCard
                 key={template.id}
@@ -618,7 +639,7 @@ export const RatTemplatesBrowser = ({
               />
             ))
           ) : (
-            <p className="text-sm text-muted-foreground text-center py-6">
+            <p className="py-6 text-center text-sm text-muted-foreground">
               Nenhum template com o filtro selecionado.
             </p>
           )}

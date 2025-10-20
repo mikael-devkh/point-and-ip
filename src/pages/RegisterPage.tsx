@@ -123,9 +123,10 @@ const RegisterPage = () => {
             <Form {...form}>
               <form
                 onSubmit={form.handleSubmit(onSubmit)}
-                className="space-y-6"
+                className="relative space-y-6"
               >
-                <FormField
+                <fieldset disabled={isSubmitting} className="space-y-6">
+                  <FormField
                   control={form.control}
                   name="email"
                   render={({ field }) => (
@@ -145,7 +146,7 @@ const RegisterPage = () => {
                   )}
                 />
 
-                <FormField
+                  <FormField
                   control={form.control}
                   name="password"
                   render={({ field }) => (
@@ -165,10 +166,16 @@ const RegisterPage = () => {
                   )}
                 />
 
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
-                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Criar conta
-                </Button>
+                  <Button type="submit" className="w-full" disabled={isSubmitting}>
+                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Criar conta
+                  </Button>
+                </fieldset>
+                {isSubmitting && (
+                  <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-background/70 backdrop-blur-sm">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  </div>
+                )}
               </form>
             </Form>
           </CardContent>
