@@ -562,6 +562,7 @@ export const RatTemplatesBrowser = ({
   if (loadingAuth || loadingTemplates) {
     return (
       <Card className="p-4 space-y-4 shadow-lg sm:p-6">
+        <p className="text-sm text-muted-foreground">A carregar templates...</p>
         <div className="space-y-2">
           <Skeleton className="h-6 w-48" />
           <Skeleton className="h-4 w-72" />

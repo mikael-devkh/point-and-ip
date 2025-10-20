@@ -359,10 +359,7 @@ const ServiceManager = () => {
   const [pdv, setPdv] = useState("");
   const [timerStoreId, setTimerStoreId] = useState<string>("");
 
-  const billing = useMemo(
-    () => calculateBilling(activeCalls.length),
-    [activeCalls.length]
-  );
+  const billing = useMemo(() => calculateBilling(activeCalls), [activeCalls]);
 
   const openCalls = useMemo(
     () => activeCalls.filter((call) => call.status === "open"),
@@ -690,20 +687,35 @@ const ServiceManager = () => {
                     </p>
                     <p className="text-3xl font-bold">{billing.totalActiveCount}</p>
                   </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Chamado inicial</span>
-                      <span className="font-semibold">R$ {billing.baseFee.toFixed(2)}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Ativos extras</span>
-                      <span className="font-semibold">R$ {billing.extraActiveFee.toFixed(2)}</span>
-                    </div>
-                    <Separator />
+                  <div className="space-y-3">
                     <div className="flex items-center justify-between text-lg font-bold">
                       <span>Total estimado</span>
                       <span>R$ {billing.totalFee.toFixed(2)}</span>
                     </div>
+                    <Separator />
+                    {Object.entries(billing.detailsByStore).length ? (
+                      <div className="space-y-2">
+                        {Object.entries(billing.detailsByStore).map(
+                          ([storeCode, detail]) => (
+                            <div
+                              key={storeCode}
+                              className="flex items-center justify-between rounded-md border border-border/60 bg-muted/30 px-3 py-2 text-xs sm:text-sm"
+                            >
+                              <span className="text-muted-foreground">
+                                Loja {storeCode} • {detail.count} chamado(s)
+                              </span>
+                              <span className="font-semibold">
+                                R$ {detail.fee.toFixed(2)}
+                              </span>
+                            </div>
+                          ),
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        Sem chamados ativos contabilizados no momento.
+                      </p>
+                    )}
                   </div>
                   <Separator />
                   <div className="space-y-3">
