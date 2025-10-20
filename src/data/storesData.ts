@@ -7,7 +7,7 @@ export interface StoreData {
 
 /**
  * Gera os dados da loja baseado no número da loja
- * A planilha Rede 10 contém 10.000 lojas com IPs seguindo um padrão matemático
+ * A planilha Rede 10 contém 10.000 lojas com IPs npmnpmseguindo um padrão matemático
  */
 function generateStoreData(storeNumber: number): StoreData {
   // Padrão da planilha: cada loja tem 2 IPs consecutivos (/23 subnet)
