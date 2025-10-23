@@ -12,6 +12,50 @@ import { origemEquipamentoOptions } from "../data/ratOptions";
 
 const log = (...args: any[]) => console.debug("[RAT]", ...args);
 
+const sanitizeFilenamePart = (value?: string | null) => {
+  if (!value) return "";
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .toLowerCase();
+};
+
+const buildRatFilename = (formData: RatFormData) => {
+  const parts = [
+    "rat",
+    sanitizeFilenamePart(formData.codigoLoja),
+    sanitizeFilenamePart(formData.pdv),
+    sanitizeFilenamePart(formData.fsa),
+  ].filter(Boolean);
+
+  const timestamp = new Date()
+    .toISOString()
+    .replace(/[-:]/g, "")
+    .split(".")[0];
+
+  const base = parts.length > 0 ? parts.join("-") : "rat";
+  return `${base}-${timestamp}.pdf`;
+};
+
+const triggerBrowserDownload = (url: string, filename: string) => {
+  if (typeof document === "undefined") {
+    return;
+  }
+
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.rel = "noopener";
+  anchor.style.display = "none";
+
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+};
+
 // Helper para setar texto em campos do formulário
 function setTextSafe(form: any, fieldName: string, value?: string | null) {
   const textValue = value === undefined || value === null ? "" : String(value);
@@ -211,11 +255,54 @@ export const generateRatPDF = async (formData: RatFormData) => {
     }
 
     // Salvar e abrir PDF
+    const fileName = buildRatFilename(formData);
     const bytes = await pdfDoc.save();
-    const blob = new Blob([new Uint8Array(Array.from(bytes)).buffer], { type: "application/pdf" });
+    const blob = new Blob([bytes], { type: "application/pdf" });
+
+    const shareSupported =
+      typeof navigator !== "undefined" &&
+      typeof navigator.share === "function" &&
+      typeof navigator.canShare === "function" &&
+      typeof File !== "undefined";
+
+    if (shareSupported) {
+      try {
+        const file = new File([blob], fileName, { type: blob.type });
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: "RAT", text: fileName });
+          log("PDF compartilhado via Web Share API.");
+          return;
+        }
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          log("Compartilhamento cancelado pelo usuário.");
+          return;
+        }
+
+        log("Falha ao compartilhar via Web Share API, tentando fallback.", error);
+      }
+    }
+
     const url = URL.createObjectURL(blob);
-    window.open(url, "_blank");
-    
+    triggerBrowserDownload(url, fileName);
+
+    if (typeof window !== "undefined" && typeof window.open === "function") {
+      try {
+        const openedWindow = window.open(url, "_blank");
+        if (!openedWindow) {
+          log("Popup bloqueado, mantendo apenas o download automático.");
+        }
+      } catch (error) {
+        log("Não foi possível abrir nova janela para o PDF.", error);
+      }
+    }
+
+    setTimeout(() => {
+      try {
+        URL.revokeObjectURL(url);
+      } catch {}
+    }, 60_000);
+
     log("PDF gerado com sucesso!");
     return { url };
   } catch (error) {
