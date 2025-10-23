@@ -258,23 +258,45 @@ export const generateRatPDF = async (formData: RatFormData) => {
     const fileName = buildRatFilename(formData);
     const bytes = await pdfDoc.save();
     const blob = new Blob([bytes], { type: "application/pdf" });
+    const url = URL.createObjectURL(blob);
+
+    const cleanupUrl = () => {
+      try {
+        URL.revokeObjectURL(url);
+      } catch {}
+    };
 
     const shareSupported =
-      typeof navigator !== "undefined" &&
-      typeof navigator.share === "function" &&
-      typeof navigator.canShare === "function" &&
-      typeof File !== "undefined";
+      typeof navigator !== "undefined" && typeof navigator.share === "function";
 
     if (shareSupported) {
-      try {
-        const file = new File([blob], fileName, { type: blob.type });
-        if (navigator.canShare({ files: [file] })) {
-          await navigator.share({ files: [file], title: "RAT", text: fileName });
-          log("PDF compartilhado via Web Share API.");
-          return;
+      const shareData: ShareData = { title: "RAT", text: fileName };
+      const canShareFiles =
+        typeof navigator.canShare === "function" && typeof File !== "undefined";
+
+      if (typeof File !== "undefined") {
+        try {
+          const file = new File([blob], fileName, { type: blob.type });
+          if (!canShareFiles || navigator.canShare?.({ files: [file] })) {
+            shareData.files = [file];
+          }
+        } catch (error) {
+          log("Falha ao preparar arquivo para compartilhamento.", error);
         }
+      }
+
+      if (!shareData.files?.length) {
+        shareData.url = url;
+      }
+
+      try {
+        await navigator.share(shareData);
+        cleanupUrl();
+        log("PDF compartilhado via Web Share API.");
+        return;
       } catch (error) {
         if (error instanceof DOMException && error.name === "AbortError") {
+          cleanupUrl();
           log("Compartilhamento cancelado pelo usuário.");
           return;
         }
@@ -282,8 +304,6 @@ export const generateRatPDF = async (formData: RatFormData) => {
         log("Falha ao compartilhar via Web Share API, tentando fallback.", error);
       }
     }
-
-    const url = URL.createObjectURL(blob);
     triggerBrowserDownload(url, fileName);
 
     if (typeof window !== "undefined" && typeof window.open === "function") {
@@ -297,11 +317,7 @@ export const generateRatPDF = async (formData: RatFormData) => {
       }
     }
 
-    setTimeout(() => {
-      try {
-        URL.revokeObjectURL(url);
-      } catch {}
-    }, 60_000);
+    setTimeout(cleanupUrl, 60_000);
 
     log("PDF gerado com sucesso!");
     return { url };
